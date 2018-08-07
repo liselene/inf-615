@@ -10,6 +10,8 @@ paste("Exemplos de dados de validacao:",nrow(valSet))
 # Como você irá lidar com as features discretas? 
 paste("As features serão mapeadas em disversas colunas de binários")
 niveis<-unique(trainSet$ocean_proximity)
+levels(valSet$ocean_proximity) <- levels(trainSet$ocean_proximity)
+
 trainSet$hocean = as.numeric(trainSet$ocean_proximity == niveis[1])
 trainSet$near_bay = as.numeric(trainSet$ocean_proximity == niveis[2])
 trainSet$inland = as.numeric(trainSet$ocean_proximity == niveis[3])
@@ -31,23 +33,40 @@ paste("Sim")
 # Como você lidaria com isso?
 paste("Remove-se as amostras sem anotação, caso a variavel seja utilizada no treinamento, caso contrário manteria.")  
 trainSet <- trainSet[rowSums(is.na(trainSet)) == 0,]
+valSet <- valSet[rowSums(is.na(valSet)) == 0,]
 
 ## 2- Normalize os dados de modo que eles fiquem todos no mesmo intervalo.
 ##    Não normalizaremos latitude e longitude, bem como o preço final
 trainSet_save <- trainSet
 
-meanTrainFeatures = colMeans(trainSet[,3:8]) #mean of each feature
-stdTrainFeatures = apply(trainSet[,3:8], 2, sd) #std of each feature
+meanTrainFeatures = colMeans(trainSet[,1:8]) #mean of each feature
+stdTrainFeatures = apply(trainSet[,1:8], 2, sd) #std of each feature
 
 meanTrainFeatures
 stdTrainFeatures
 
-# some weird error is happening here
-trainSet[,3:8] <- sweep(trainSet[,3:8], 2, meanTrainFeatures, "-")
-trainSet[,3:8] <- trainSet[,3:8] / stdTrainFeatures
+# some weird error is happening here, fix it doing column by column
+trainSet[,1:8] <- sweep(trainSet[,1:8], 2, meanTrainFeatures, "-")
+#trainSet[,1:8] <- trainSet[,1:8] / stdTrainFeatures
+trainSet[, 1] <- trainSet[,1] / stdTrainFeatures[1]
+trainSet[, 2] <- trainSet[,2] / stdTrainFeatures[2]
+trainSet[, 3] <- trainSet[,3] / stdTrainFeatures[3]
+trainSet[, 4] <- trainSet[,4] / stdTrainFeatures[4]
+trainSet[, 5] <- trainSet[,5] / stdTrainFeatures[5]
+trainSet[, 6] <- trainSet[,6] / stdTrainFeatures[6]
+trainSet[, 7] <- trainSet[,7] / stdTrainFeatures[7]
+trainSet[, 8] <- trainSet[,8] / stdTrainFeatures[8]
 
-valSet[,3:8] <- sweep(valSet[,3:8], 2, meanTrainFeatures, "-")
-valSet[,3:8] <- valSet[,3:8] / stdTrainFeatures
+valSet[,1:8] <- sweep(valSet[,1:8], 2, meanTrainFeatures, "-")
+#valSet[,1:8] <- valSet[,1:8] / stdTrainFeatures
+valSet[, 1] <- valSet[,1] / stdTrainFeatures[1]
+valSet[, 2] <- valSet[,2] / stdTrainFeatures[2]
+valSet[, 3] <- valSet[,3] / stdTrainFeatures[3]
+valSet[, 4] <- valSet[,4] / stdTrainFeatures[4]
+valSet[, 5] <- valSet[,5] / stdTrainFeatures[5]
+valSet[, 6] <- valSet[,6] / stdTrainFeatures[6]
+valSet[, 7] <- valSet[,7] / stdTrainFeatures[7]
+valSet[, 8] <- valSet[,8] / stdTrainFeatures[8]
 
 # Regressão Linear
 # TODO: Aplicar regressão
