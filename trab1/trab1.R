@@ -16,7 +16,8 @@ trainSet$hocean = as.numeric(trainSet$ocean_proximity == niveis[1])
 trainSet$near_bay = as.numeric(trainSet$ocean_proximity == niveis[2])
 trainSet$inland = as.numeric(trainSet$ocean_proximity == niveis[3])
 trainSet$near_ocean = as.numeric(trainSet$ocean_proximity == niveis[4])
-trainSet$island = as.numeric(trainSet$ocean_proximity == niveis[5])
+# we only need 4 columns to represent 5 elements
+#trainSet$island = as.numeric(trainSet$ocean_proximity == niveis[5])
 trainSet$ocean_proximity = NULL
 
 # TODO: precisa arrumar o factor
@@ -24,7 +25,8 @@ valSet$hocean = as.numeric(valSet$ocean_proximity == niveis[1])
 valSet$near_bay = as.numeric(valSet$ocean_proximity == niveis[2])
 valSet$inland = as.numeric(valSet$ocean_proximity == niveis[3])
 valSet$near_ocean = as.numeric(valSet$ocean_proximity == niveis[4])
-valSet$island = as.numeric(valSet$ocean_proximity == niveis[5])
+# we only need 4 columns to represent 5 elements
+#valSet$island = as.numeric(valSet$ocean_proximity == niveis[5])
 valSet$ocean_proximity = NULL
 
 # Há exemplos com features sem anotações? 
@@ -47,29 +49,34 @@ stdTrainFeatures
 
 # some weird error is happening here, fix it doing column by column
 trainSet[,1:8] <- sweep(trainSet[,1:8], 2, meanTrainFeatures, "-")
-#trainSet[,1:8] <- trainSet[,1:8] / stdTrainFeatures
-trainSet[, 1] <- trainSet[,1] / stdTrainFeatures[1]
-trainSet[, 2] <- trainSet[,2] / stdTrainFeatures[2]
-trainSet[, 3] <- trainSet[,3] / stdTrainFeatures[3]
-trainSet[, 4] <- trainSet[,4] / stdTrainFeatures[4]
-trainSet[, 5] <- trainSet[,5] / stdTrainFeatures[5]
-trainSet[, 6] <- trainSet[,6] / stdTrainFeatures[6]
-trainSet[, 7] <- trainSet[,7] / stdTrainFeatures[7]
-trainSet[, 8] <- trainSet[,8] / stdTrainFeatures[8]
+trainSet[,1:8] = sweep(trainSet[,1:8], 2, stdTrainFeatures, "/")
 
 valSet[,1:8] <- sweep(valSet[,1:8], 2, meanTrainFeatures, "-")
-#valSet[,1:8] <- valSet[,1:8] / stdTrainFeatures
-valSet[, 1] <- valSet[,1] / stdTrainFeatures[1]
-valSet[, 2] <- valSet[,2] / stdTrainFeatures[2]
-valSet[, 3] <- valSet[,3] / stdTrainFeatures[3]
-valSet[, 4] <- valSet[,4] / stdTrainFeatures[4]
-valSet[, 5] <- valSet[,5] / stdTrainFeatures[5]
-valSet[, 6] <- valSet[,6] / stdTrainFeatures[6]
-valSet[, 7] <- valSet[,7] / stdTrainFeatures[7]
-valSet[, 8] <- valSet[,8] / stdTrainFeatures[8]
+valSet[,1:8] = sweep(valSet[,1:8], 2, stdTrainFeatures, "/")
 
-# Regressão Linear
-# TODO: Aplicar regressão
+# Regressão Linear simples
+model_simple = lm(formula = median_house_value ~., data=trainSet)
+summary(model_simple)
+
+valPred = predict(model_simple, valSet)
+summary(valPred)
+
+MAE_simple = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
+MAE_simple
+
+
+
+# Regressão Linear mais complexa
+model_complex = lm(formula = median_house_value ~. 
+                   + I(sqrt(latitude^2*longitude^2))  # size and angle(TODO)
+                     , data=trainSet)
+summary(model_complex)
+
+valPred = predict(model_complex, valSet)
+summary(valPred)
+
+MAE_complex = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
+MAE_complex
 
 # nrow(samples)
 # ncol(samples)
