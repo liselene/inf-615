@@ -37,7 +37,7 @@ paste("Remove-se as amostras sem anotação, caso a variavel seja utilizada no t
 trainSet <- trainSet[rowSums(is.na(trainSet)) == 0,]
 valSet <- valSet[rowSums(is.na(valSet)) == 0,]
 
-correlation<-cor(trainSet[,-9])
+correlation<-cor(trainSet[,1:8]) #talvez seja bom ver quais as features utilizar pela correlacao
 
 ## 2- Normalize os dados de modo que eles fiquem todos no mesmo intervalo.
 ##    Não normalizaremos latitude e longitude, bem como o preço final
@@ -56,7 +56,8 @@ trainSet[,1:8] = sweep(trainSet[,1:8], 2, stdTrainFeatures, "/")
 valSet[,1:8] <- sweep(valSet[,1:8], 2, meanTrainFeatures, "-")
 valSet[,1:8] = sweep(valSet[,1:8], 2, stdTrainFeatures, "/")
 
-# Regressão Linear simples (sem os dados discretos)
+##3 - Como baseline, faça uma regressão linear para predizer os preços. 
+##    Calcule o erro no conjunto de teste.
 model_simple = lm(formula = median_house_value ~ ., data=trainSet[,1:9])
 summary(model_simple)
 
@@ -66,8 +67,12 @@ summary(valPred)
 MAE_simple = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
 MAE_simple
 
+## 4 - Implemente soluções alternativas baseadas em regressão linear (através da 
+##     combinação dos features existentes) para melhorar os resultados obtidos no
+##     baseline. Compare suas soluções.
+
 # Regressão Linear simples (com os dados discretos)
-model_simple = lm(formula = median_house_value ~ ., data=trainSet[,-14])
+model_simple = lm(formula = median_house_value ~ ., data=trainSet)
 summary(model_simple)
 
 valPred = predict(model_simple, valSet)
@@ -76,6 +81,7 @@ summary(valPred)
 MAE_simple = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
 MAE_simple
 
+############# ate aqui verificado ###############
 # Regressão Linear mais complexa
 model_complex = lm(formula = median_house_value ~. 
                    + I(sqrt(latitude^2*longitude^2))  # size and angle(TODO)
