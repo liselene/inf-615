@@ -17,7 +17,7 @@ trainSet$near_bay = as.numeric(trainSet$ocean_proximity == niveis[2])
 trainSet$inland = as.numeric(trainSet$ocean_proximity == niveis[3])
 trainSet$near_ocean = as.numeric(trainSet$ocean_proximity == niveis[4])
 # we only need 4 columns to represent 5 elements
-#trainSet$island = as.numeric(trainSet$ocean_proximity == niveis[5])
+trainSet$island = as.numeric(trainSet$ocean_proximity == niveis[5])
 trainSet$ocean_proximity = NULL
 
 # TODO: precisa arrumar o factor
@@ -26,7 +26,7 @@ valSet$near_bay = as.numeric(valSet$ocean_proximity == niveis[2])
 valSet$inland = as.numeric(valSet$ocean_proximity == niveis[3])
 valSet$near_ocean = as.numeric(valSet$ocean_proximity == niveis[4])
 # we only need 4 columns to represent 5 elements
-#valSet$island = as.numeric(valSet$ocean_proximity == niveis[5])
+valSet$island = as.numeric(valSet$ocean_proximity == niveis[5])
 valSet$ocean_proximity = NULL
 
 # Há exemplos com features sem anotações? 
@@ -36,6 +36,8 @@ paste("Sim")
 paste("Remove-se as amostras sem anotação, caso a variavel seja utilizada no treinamento, caso contrário manteria.")  
 trainSet <- trainSet[rowSums(is.na(trainSet)) == 0,]
 valSet <- valSet[rowSums(is.na(valSet)) == 0,]
+
+correlation<-cor(trainSet[,-9])
 
 ## 2- Normalize os dados de modo que eles fiquem todos no mesmo intervalo.
 ##    Não normalizaremos latitude e longitude, bem como o preço final
@@ -54,8 +56,18 @@ trainSet[,1:8] = sweep(trainSet[,1:8], 2, stdTrainFeatures, "/")
 valSet[,1:8] <- sweep(valSet[,1:8], 2, meanTrainFeatures, "-")
 valSet[,1:8] = sweep(valSet[,1:8], 2, stdTrainFeatures, "/")
 
-# Regressão Linear simples
-model_simple = lm(formula = median_house_value ~., data=trainSet)
+# Regressão Linear simples (sem os dados discretos)
+model_simple = lm(formula = median_house_value ~ ., data=trainSet[,1:9])
+summary(model_simple)
+
+valPred = predict(model_simple, valSet[,1:9])
+summary(valPred)
+
+MAE_simple = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
+MAE_simple
+
+# Regressão Linear simples (com os dados discretos)
+model_simple = lm(formula = median_house_value ~ ., data=trainSet[,-14])
 summary(model_simple)
 
 valPred = predict(model_simple, valSet)
@@ -63,8 +75,6 @@ summary(valPred)
 
 MAE_simple = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
 MAE_simple
-
-
 
 # Regressão Linear mais complexa
 model_complex = lm(formula = median_house_value ~. 
@@ -78,67 +88,14 @@ summary(valPred)
 MAE_complex = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
 MAE_complex
 
-# nrow(samples)
-# ncol(samples)
-# 
-# nosex<-samples[,2:9]
-# summary(nosex)
-# set.seed(42)
-# train_index<-sample(1:nrow(samples),size=0.8*nrow(samples))
-# train<-nosex[train_index,]
-# test<-nosex[-train_index,]
-# 
-# model_simple <- lm(formula=rings ~ length + diameter+height+whole_weight+shucked_weight+viscera_weight+shell_weight,data=train)
-# summary(model_simple)
-# 
-# valPredito <- predict(model_simple,test[1,1:7])
-# test[1,"rings"]
-# 
-# valPredito <- predict(model_simple,test[2,1:7])
-# test[2,"rings"]
-# 
-# valPredito<-predict(model_simple,test[,1:7])
-# summary(valPredito)
-# 
-# #exemplo aula
-# model_complex <- lm(formula = rings ~ length + diameter + height + shell_weight + whole_weight + shucked_weight + viscera_weight + I(height^2) + I(length^2) + I(diameter^2) +I(shell_weight^2)+I(whole_weight^2)+I(shucked_weight^2)+I(viscera_weight^2),data=train)
-# summary(model_complex)
-# valPredito <- predict(model_complex,test[,1:7])
-# # MAE
-# MAE_simple = sum(abs(valPredito - test$rings)) / length(valPredito)
-# MAE_simple
-# 
-# #meu exemplo
-# model_complex <- lm(formula = rings ~ diameter + shell_weight + whole_weight + shucked_weight + viscera_weight + I(length*height), data=train)
-# summary(model_complex)
-# valPredito <- predict(model_complex,test[,1:7])
-# # MAE
-# MAE_simple = sum(abs(valPredito - test$rings)) / length(valPredito)
-# MAE_simple
-# 
-# #Normalizacao
-# meanTrain <- colMeans(train[,2:8])
-# stdTrain <- apply(train[,2:8], 2, sd)
-# 
-# ################### reorganizar
-# meanTrainFeatures
-# stdTrainFeatures
-# 
-# trainData[,2:8] = sweep(trainData[,2:8], 2, meanTrainFeatures, "-")
-# trainData[,2:8] = trainData[,2:8] / stdTrainFeatures
-# 
-# valData[,2:8] = sweep(valData[,2:8], 2, meanTrainFeatures, "-")
-# valData[,2:8] = valData[,2:8] / stdTrainFeatures
-# 
-# trainData[1:5,]
-# summary(trainData)
-# 
-# ## Let's train a linear regression
-# model_simple = lm(formula = rings ~ length + diameter + height +
-#                 whole_weight + shucked_weight + viscera_weight +
-#                 shell_weight,
-#                 data=trainData)
-# 
-# summary(model_simple)
-# valPred = predict(model_simple, valData)
-# summary(valPred)
+# Regressão Linear mais complexa
+model_complex = lm(formula = median_house_value ~ I(total_rooms^2)+I(households^2) #
+                   , data=trainSet)
+summary(model_complex)
+
+valPred = predict(model_complex, valSet)
+summary(valPred)
+
+MAE_complex = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
+MAE_complex
+
