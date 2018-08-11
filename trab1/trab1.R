@@ -5,10 +5,10 @@ trainSet<-read.csv("housePricing_trainSet.csv")
 
 # Estou dividindo o data set de treinamento em 2 para testar melhor meus dados
 # Testando com o value e test set n??o estou obtendo resultados confi??veis
-set.seed(123)
-train_ind <- sample(seq_len(nrow(trainSet)), size = 0.75*nrow(trainSet))
-valSet <- trainSet[-train_ind,]
-trainSet <- trainSet[train_ind,]
+#set.seed(123)
+#train_ind <- sample(seq_len(nrow(trainSet)), size = 0.75*nrow(trainSet))
+#valSet <- trainSet[-train_ind,]
+#trainSet <- trainSet[train_ind,]
 
 summary(trainSet)
 summary(valSet)
@@ -30,7 +30,6 @@ trainSet$near_ocean = as.numeric(trainSet$ocean_proximity == niveis[4])
 #trainSet$island = as.numeric(trainSet$ocean_proximity == niveis[5])
 trainSet$ocean_proximity = NULL
 
-# TODO: precisa arrumar o factor
 valSet$hocean = as.numeric(valSet$ocean_proximity == niveis[1])
 valSet$near_bay = as.numeric(valSet$ocean_proximity == niveis[2])
 valSet$inland = as.numeric(valSet$ocean_proximity == niveis[3])
@@ -145,8 +144,7 @@ base_formula_filt <- "median_house_value ~ longitude + latitude +
 
 formula_squares_filt <- paste0(base_formula_filt, " + 
                     I(total_rooms^2) + I(total_bedrooms^2) + 
-                    I(population^2) + I(median_income^2) +
-                    I(median_house_value^2)")
+                    I(population^2) + I(median_income^2)")
 
 model_squares_filt = lm(formula = formula_squares_filt, data=trainSet)
 summary(model_squares_filt)
@@ -168,17 +166,15 @@ MAEs_train[2] <- MAE_squares_filt_t
 # modelo c??bico
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
                 total_rooms + total_bedrooms + population + households + median_income +
-                median_house_value + hocean + near_bay + inland + near_ocean"
+                hocean + near_bay + inland + near_ocean"
 
 formula_squares <- paste0(base_formula, " + I(longitude^2) + I(latitude^2) + 
                     I(housing_median_age^2) + I(total_rooms^2) + I(total_bedrooms^2) + 
-                    I(population^2) + I(households^2) + I(median_income^2) +
-                    I(median_house_value^2)")
+                    I(population^2) + I(households^2) + I(median_income^2)")
 
 formula_cubic <- paste0(formula_squares, " + I(longitude^3) + I(latitude^3) + 
                     I(housing_median_age^3) + I(total_rooms^3) + I(total_bedrooms^3) + 
-                    I(population^3) + I(households^3) + I(median_income^3) +
-                    I(median_house_value^3)")
+                    I(population^3) + I(households^3) + I(median_income^3)")
 
 model_cubic = lm(formula = formula_cubic, data=trainSet)
 summary(model_cubic)
@@ -197,20 +193,17 @@ MAE_cubic_t = sum(abs(valPred - trainSet$median_house_value)) / length(valPred)
 MAE_cubic_t
 MAEs_train[3] <- MAE_cubic_t
 
-# modelo c??bico filtrado
+# modelo cubico filtrado
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
-                total_rooms + total_bedrooms + population + households + median_income +
-                median_house_value + near_ocean"
+                total_rooms + total_bedrooms + population + households + median_income + near_ocean"
 
 formula_squares_filt <- paste0(base_formula, " + I(longitude^2) + I(latitude^2) + 
                           I(housing_median_age^2) + I(total_rooms^2) + I(total_bedrooms^2) + 
-                          I(median_income^2) +
-                          I(median_house_value^2)")
+                          I(median_income^2)")
 
 formula_cubic_filt <- paste0(formula_squares_filt, " + I(longitude^3) + I(latitude^3) + 
                         I(total_rooms^3) + I(total_bedrooms^3) + 
-                        I(median_income^3) +
-                        I(median_house_value^3)")
+                        I(median_income^3)")
 
 model_cubic_filt = lm(formula = formula_cubic_filt, data=trainSet)
 summary(model_cubic_filt)
@@ -224,22 +217,19 @@ MAE_cubic_filt
 # modelo de grau 4
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
                 total_rooms + total_bedrooms + population + households + median_income +
-                median_house_value + hocean + near_bay + inland + near_ocean"
+                hocean + near_bay + inland + near_ocean"
 
 formula_squares <- paste0(base_formula, " + I(longitude^2) + I(latitude^2) + 
                     I(housing_median_age^2) + I(total_rooms^2) + I(total_bedrooms^2) + 
-                    I(population^2) + I(households^2) + I(median_income^2) +
-                    I(median_house_value^2)")
+                    I(population^2) + I(households^2) + I(median_income^2)")
 
 formula_cubic <- paste0(formula_squares, " + I(longitude^3) + I(latitude^3) + 
                     I(housing_median_age^3) + I(total_rooms^3) + I(total_bedrooms^3) + 
-                    I(population^3) + I(households^3) + I(median_income^3) +
-                    I(median_house_value^3)")
+                    I(population^3) + I(households^3) + I(median_income^3)")
 
 formula_4 <- paste0(formula_cubic, " + I(longitude^4) + I(latitude^4) + 
                     I(housing_median_age^4) + I(total_rooms^4) + I(total_bedrooms^4) + 
-                    I(population^4) + I(households^4) + I(median_income^4) +
-                    I(median_house_value^4)")
+                    I(population^4) + I(households^4) + I(median_income^4)")
 
 
 model_4 = lm(formula = formula_4, data=trainSet)
@@ -261,20 +251,16 @@ MAEs_train[4] <- MAE_4_t
 
 # modelo de grau 4 filtrado
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
-                total_bedrooms + population + households +
-                median_house_value"
+                total_bedrooms + population + households"
 
 formula_squares_filt <- paste0(base_formula, " + I(longitude^2) + I(latitude^2) + 
-                          I(housing_median_age^2) + I(median_income^2) +
-                          I(median_house_value^2)")
+                          I(housing_median_age^2) + I(median_income^2)")
 
 formula_cubic_filt <- paste0(formula_squares_filt, " + I(longitude^3) + I(latitude^3) + 
-                        I(median_income^3) +
-                        I(median_house_value^3)")
+                        I(median_income^3)")
 
 formula_4_filt <- paste0(formula_cubic_filt, " + I(longitude^4) + I(latitude^4) + 
-                    I(housing_median_age^4) + I(median_income^4) +
-                    I(median_house_value^4)")
+                    I(housing_median_age^4) + I(median_income^4)")
 
 
 model_4_filt = lm(formula = formula_4_filt, data=trainSet)
@@ -288,23 +274,24 @@ MAE_4_filt
 
 # modelo de grau 5
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
-median_income +
-median_house_value + inland"
+total_rooms + total_bedrooms + population + households + median_income +
+hocean + near_bay + inland + near_ocean"
 
-formula_squares <- paste0(base_formula, " + I(latitude^2) + 
-                          I(housing_median_age^2) + 
-                          I(median_house_value^2)")
+formula_squares <- paste0(base_formula, " + I(longitude^2) + I(latitude^2) + 
+                          I(housing_median_age^2) + I(total_rooms^2) + I(total_bedrooms^2) + 
+                          I(population^2) + I(households^2) + I(median_income^2)")
 
-formula_cubic <- paste0(formula_squares, " + I(median_income^3) +
-                        I(median_house_value^3)")
+formula_cubic <- paste0(formula_squares, " + I(longitude^3) + I(latitude^3) + 
+                        I(housing_median_age^3) + I(total_rooms^3) + I(total_bedrooms^3) + 
+                        I(population^3) + I(households^3) + I(median_income^3)")
 
-formula_4 <- paste0(formula_cubic, " + I(latitude^4) + 
-                    I(housing_median_age^4) + I(median_income^4) +
-                    I(median_house_value^4)")
+formula_4 <- paste0(formula_cubic, " + I(longitude^4) + I(latitude^4) + 
+                    I(housing_median_age^4) + I(total_rooms^4) + I(total_bedrooms^4) + 
+                    I(population^4) + I(households^4) + I(median_income^4)")
 
 formula_5 <- paste0(formula_4, " + I(longitude^5) + I(latitude^5) + 
-                    I(median_income^5) +
-                    I(median_house_value^5)")
+                    I(housing_median_age^5) + I(total_rooms^5) + I(total_bedrooms^5) + 
+                    I(population^5) + I(households^5) + I(median_income^5)")
 
 
 model_5 = lm(formula = formula_5, data=trainSet)
@@ -327,33 +314,27 @@ MAEs_train[5] <- MAE_5_t
 # modelo de grau 6
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
 total_rooms + total_bedrooms + population + households + median_income +
-median_house_value + hocean + near_bay + inland + near_ocean"
+hocean + near_bay + inland + near_ocean"
 
 formula_squares <- paste0(base_formula, " + I(longitude^2) + I(latitude^2) + 
                           I(housing_median_age^2) + I(total_rooms^2) + I(total_bedrooms^2) + 
-                          I(population^2) + I(households^2) + I(median_income^2) +
-                          I(median_house_value^2)")
+                          I(population^2) + I(households^2) + I(median_income^2)")
 
 formula_cubic <- paste0(formula_squares, " + I(longitude^3) + I(latitude^3) + 
                         I(housing_median_age^3) + I(total_rooms^3) + I(total_bedrooms^3) + 
-                        I(population^3) + I(households^3) + I(median_income^3) +
-                        I(median_house_value^3)")
+                        I(population^3) + I(households^3) + I(median_income^3)")
 
 formula_4 <- paste0(formula_cubic, " + I(longitude^4) + I(latitude^4) + 
                     I(housing_median_age^4) + I(total_rooms^4) + I(total_bedrooms^4) + 
-                    I(population^4) + I(households^4) + I(median_income^4) +
-                    I(median_house_value^4)")
+                    I(population^4) + I(households^4) + I(median_income^4)")
 
 formula_5 <- paste0(formula_4, " + I(longitude^5) + I(latitude^5) + 
                     I(housing_median_age^5) + I(total_rooms^5) + I(total_bedrooms^5) + 
-                    I(population^5) + I(households^5) + I(median_income^5) +
-                    I(median_house_value^5)")
+                    I(population^5) + I(households^5) + I(median_income^5)")
 
 formula_6 <- paste0(formula_5, " + I(longitude^6) + I(latitude^6) + 
                     I(housing_median_age^6) + I(total_rooms^6) + I(total_bedrooms^6) + 
-                    I(population^6) + I(households^6) + I(median_income^6) +
-                    I(median_house_value^6)")
-
+                    I(population^6) + I(households^6) + I(median_income^6)")
 
 model_6 = lm(formula = formula_6, data=trainSet)
 summary(model_6)
@@ -375,8 +356,7 @@ MAEs_train[6] <- MAE_6_t
 # modelo de grau 7
 formula_7 <- paste0(formula_6, " + I(longitude^7) + I(latitude^7) + 
                     I(housing_median_age^7) + I(total_rooms^7) + I(total_bedrooms^7) + 
-                    I(population^7) + I(households^7) + I(median_income^7) +
-                    I(median_house_value^7)")
+                    I(population^7) + I(households^7) + I(median_income^7)")
 
 
 model_7 = lm(formula = formula_7, data=trainSet)
@@ -399,8 +379,7 @@ MAEs_train[7] <- MAE_7_t
 # modelo de grau 8
 formula_8 <- paste0(formula_7, " + I(longitude^8) + I(latitude^8) + 
                     I(housing_median_age^8) + I(total_rooms^8) + I(total_bedrooms^8) + 
-                    I(population^8) + I(households^8) + I(median_income^8) +
-                    I(median_house_value^8)")
+                    I(population^8) + I(households^8) + I(median_income^8)")
 
 
 model_8 = lm(formula = formula_8, data=trainSet)
@@ -423,8 +402,7 @@ MAEs_train[8] <- MAE_8_t
 # modelo de grau 9
 formula_9 <- paste0(formula_8, " + I(longitude^9) + I(latitude^9) + 
                     I(housing_median_age^9) + I(total_rooms^9) + I(total_bedrooms^9) + 
-                    I(population^9) + I(households^9) + I(median_income^9) +
-                    I(median_house_value^9)")
+                    I(population^9) + I(households^9) + I(median_income^9)")
 
 
 model_9 = lm(formula = formula_9, data=trainSet)
@@ -439,8 +417,7 @@ MAE_9
 # modelo de grau 10
 formula_10 <- paste0(formula_9, " + I(longitude^10) + I(latitude^10) + 
                     I(housing_median_age^10) + I(total_rooms^10) + I(total_bedrooms^10) + 
-                    I(population^10) + I(households^10) + I(median_income^10) +
-                    I(median_house_value^10)")
+                    I(population^10) + I(households^10) + I(median_income^10)")
 
 
 model_10 = lm(formula = formula_10, data=trainSet)
@@ -459,4 +436,4 @@ graphic_data <- data.frame(Graus = graus, MAE_train = MAEs_train, MAE_test = MAE
 
 grafico <- ggplot(graphic_data, aes(x = graphic_data$Graus)) +
         geom_line(aes(y = graphic_data$MAE_train)) +
-        geom_line(aes(y = graphic_data$MAE_test)) +
+        geom_line(aes(y = graphic_data$MAE_test))
