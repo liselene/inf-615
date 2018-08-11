@@ -46,7 +46,7 @@ paste("Remove-se as amostras sem anota????o, caso a variavel seja utilizada no t
 trainSet <- trainSet[rowSums(is.na(trainSet)) == 0,]
 valSet <- valSet[rowSums(is.na(valSet)) == 0,]
 
-correlation<-cor(trainSet[,1:8]) #talvez seja bom ver quais as features utilizar pela correlacao
+correlation<-cor(trainSet) #talvez seja bom ver quais as features utilizar pela correlacao
 
 ## 2- Normalize os dados de modo que eles fiquem todos no mesmo intervalo.
 ##    N??o normalizaremos latitude e longitude, bem como o pre??o final
@@ -428,6 +428,45 @@ summary(valPred)
 
 MAE_10 = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
 MAE_10
+
+# modelo mais complexo
+base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
+total_rooms + total_bedrooms + population + households + median_income +
+hocean + near_bay + inland + near_ocean"
+
+formula_squares <- paste0(base_formula, " + 
+                          I(housing_median_age^2) + I(total_rooms^2) + I(total_bedrooms^2) + 
+                          I(population^2) + I(households^2) + I(median_income^2)")
+
+formula_cubic <- paste0(formula_squares, " + 
+                        I(housing_median_age^3) + I(total_rooms^3) + I(total_bedrooms^3) + 
+                        I(population^3) + I(households^3) + I(median_income^3)")
+
+formula_4 <- paste0(formula_cubic, " + 
+                    I(housing_median_age^4) + I(total_rooms^4) + I(total_bedrooms^4) + 
+                    I(population^4) + I(households^4) + I(median_income^4)")
+
+formula_5 <- paste0(formula_4, " + 
+                    I(housing_median_age^5) + I(total_rooms^5) + I(total_bedrooms^5) + 
+                    I(population^5) + I(households^5) + I(median_income^5)")
+
+formula_final <- paste0(formula_5, " + 
+                I(sqrt(latitude^2 + longitude^2)) + I(atan2(longitude, latitude)) + 
+                I(total_rooms/households) + I(total_bedrooms/households) +
+                I((total_rooms/households)^2) + I((total_bedrooms/households)^2) +
+                I((total_rooms/households)^3) + I((total_bedrooms/households)^3) +
+                I((total_rooms/households)^4) + I((total_bedrooms/households)^4)
+                        ")
+
+
+model_5 = lm(formula = formula_final, data=trainSet)
+summary(model_5)
+
+valPred = predict(model_5, valSet)
+summary(valPred)
+
+MAE_5 = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
+MAE_5
 
 # plota gr??fico de MAE x grau do modelo
 library(ggplot2)
