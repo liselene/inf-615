@@ -120,12 +120,11 @@ MAE_simple
 ############# ate aqui verificado ###############
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
                 total_rooms + total_bedrooms + population + households + median_income +
-                median_house_value + hocean + near_bay + inland + near_ocean"
+                hocean + near_bay + inland + near_ocean"
 
 formula_squares <- paste0(base_formula, " + I(longitude^2) + I(latitude^2) + 
                     I(housing_median_age^2) + I(total_rooms^2) + I(total_bedrooms^2) + 
-                    I(population^2) + I(households^2) + I(median_income^2) +
-                    I(median_house_value^2)")
+                    I(population^2) + I(households^2) + I(median_income^2)")
 
 # Regress??o Linear mais complexa
 model_squares = lm(formula = formula_squares, data=trainSet)
@@ -139,8 +138,7 @@ MAE_squares
 
 # vamos agora filtrar os parametros menos relevantes do modelo quadrado
 base_formula_filt <- "median_house_value ~ longitude + latitude +
-                total_rooms + total_bedrooms + population + median_income +
-                median_house_value + inland"
+                total_rooms + total_bedrooms + population + median_income + inland"
 
 formula_squares_filt <- paste0(base_formula_filt, " + 
                     I(total_rooms^2) + I(total_bedrooms^2) + 
@@ -455,8 +453,7 @@ formula_final <- paste0(formula_5, " +
                 I(total_rooms/households) + I(total_bedrooms/households) +
                 I((total_rooms/households)^2) + I((total_bedrooms/households)^2) +
                 I((total_rooms/households)^3) + I((total_bedrooms/households)^3) +
-                I((total_rooms/households)^4) + I((total_bedrooms/households)^4)
-                        ")
+                I((total_rooms/households)^4) + I((total_bedrooms/households)^4)")
 
 
 model_5 = lm(formula = formula_final, data=trainSet)
