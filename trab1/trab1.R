@@ -467,9 +467,6 @@ MAE_5
 
 # plota gr??fico de MAE x grau do modelo
 library(ggplot2)
-
-graphic_data <- data.frame(Graus = graus, MAE_train = MAEs_train, MAE_test = MAEs_test)
-
-grafico <- ggplot(graphic_data, aes(x = graphic_data$Graus)) +
-        geom_line(aes(y = graphic_data$MAE_train)) +
-        geom_line(aes(y = graphic_data$MAE_test))
+type <- c(rep("train",8),rep("test",8))
+graphic_data <- data.frame(Graus = rep(graus,2), MAE=c(MAEs_train,MAEs_test),Group=type)
+ggplot(graphic_data,aes(x=Graus, y=MAE, group=Group,colour=Group))+geom_line()
