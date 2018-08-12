@@ -77,7 +77,7 @@ summary(valSet)
 #valSet = valSet[valSet$population < 15,]
 
 # graus que ser??o testados
-graus <- c(1, 2, 3, 4, 5, 6, 7, 8)
+graus <- c(1, 2, 3, 4, 5, 6, 7, 8,9,10,11)
 # MAEs obtidos
 MAEs_train <- c()
 MAEs_test <- c()
@@ -412,6 +412,15 @@ summary(valPred)
 MAE_9 = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
 MAE_9
 
+valPred = predict(model_9, trainSet)
+summary(valPred)
+
+MAE_9_t = sum(abs(valPred - trainSet$median_house_value)) / length(valPred)
+MAE_9_t
+
+MAEs_test[9] <- MAE_9
+MAEs_train[9] <- MAE_9_t
+
 # modelo de grau 10
 formula_10 <- paste0(formula_9, " + I(longitude^10) + I(latitude^10) + 
                     I(housing_median_age^10) + I(total_rooms^10) + I(total_bedrooms^10) + 
@@ -426,6 +435,15 @@ summary(valPred)
 
 MAE_10 = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
 MAE_10
+
+valPred = predict(model_10, trainSet)
+summary(valPred)
+
+MAE_10_t = sum(abs(valPred - trainSet$median_house_value)) / length(valPred)
+MAE_10_t
+
+MAEs_train[10] <- MAE_10_t
+MAEs_test[10] <- MAE_10
 
 # modelo mais complexo
 base_formula <- "median_house_value ~ housing_median_age +
@@ -459,23 +477,26 @@ formula_final <- paste0(formula_5, " +
                 I((total_rooms/households)^4) + I((total_bedrooms/households)^4)")
 
 
-model_5 = lm(formula = formula_final, data=trainSet)
-summary(model_5)
+model_11 = lm(formula = formula_final, data=trainSet)
+summary(model_11)
 
-valPred = predict(model_5, valSet)
+valPred = predict(model_11, valSet)
 summary(valPred)
 
-MAE_5 = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
-MAE_5
+MAE_11 = sum(abs(valPred - valSet$median_house_value)) / length(valPred)
+MAE_11
 
-valPred = predict(model_5, trainSet)
+valPred = predict(model_11, trainSet)
 summary(valPred)
 
-MAE_5_t = sum(abs(valPred - trainSet$median_house_value)) / length(valPred)
-MAE_5_t
+MAE_11_t = sum(abs(valPred - trainSet$median_house_value)) / length(valPred)
+MAE_11_t
 
-# plota gr??fico de MAE x grau do modelo
+MAEs_train[11] <- MAE_11_t
+MAEs_test[11] <- MAE_11
+
+# plota grafico de MAE x grau do modelo
 library(ggplot2)
-type <- c(rep("train",8),rep("test",8))
+type <- c(rep("train",11),rep("test",11))
 graphic_data <- data.frame(Graus = rep(graus,2), MAE=c(MAEs_train,MAEs_test),Group=type)
 ggplot(graphic_data,aes(x=Graus, y=MAE, group=Group,colour=Group))+geom_line()
