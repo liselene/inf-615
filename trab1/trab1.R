@@ -446,38 +446,33 @@ MAEs_train[10] <- MAE_10_t
 MAEs_test[10] <- MAE_10
 
 # modelo mais complexo
-base_formula <- "median_house_value ~ housing_median_age +
-population + households + median_income +
+base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
+total_rooms + total_bedrooms + population + households + median_income +
 hocean + near_bay + inland + near_ocean"
 
-formula_squares <- paste0(base_formula, " + 
-                          I(housing_median_age^2) + 
-                          I(population^2) + I(households^2) + I(median_income^2)")
+formula_squares <- paste0(base_formula, " + I(latitude^2) + 
+                          I(housing_median_age^2) + I(total_bedrooms^2) + 
+                          I(population^2) + I(median_income^2)")
 
-formula_cubic <- paste0(formula_squares, " + 
-                        I(housing_median_age^3) + 
+formula_cubic <- paste0(formula_squares, " + I(longitude^3) + I(latitude^3) + 
+                        I(housing_median_age^3) + I(total_bedrooms^3) + 
                         I(population^3) + I(households^3) + I(median_income^3)")
 
-formula_4 <- paste0(formula_cubic, " + 
-                    I(housing_median_age^4) + 
+formula_4 <- paste0(formula_cubic, " + I(longitude^4) + I(latitude^4) + 
+                    I(housing_median_age^4) + I(total_bedrooms^4) + 
                     I(population^4) + I(households^4) + I(median_income^4)")
 
-formula_5 <- paste0(formula_4, " + 
-                    I(housing_median_age^5) + 
+formula_5 <- paste0(formula_4, " + I(longitude^5) + I(latitude^5) + 
+                    I(housing_median_age^5) + I(total_bedrooms^5) + 
                     I(population^5) + I(households^5) + I(median_income^5)")
 
 formula_final <- paste0(formula_5, " + 
-                I(sqrt(latitude^2 + longitude^2)) + I(atan2(longitude, latitude)) + 
-                I(sqrt(latitude^2 + longitude^2)^2) + I(atan2(longitude, latitude)^2) +
-                I(sqrt(latitude^2 + longitude^2)^3) + I(atan2(longitude, latitude)^3) +
-                I(sqrt(latitude^2 + longitude^2)^4) + I(atan2(longitude, latitude)^4) +
-                I(total_rooms/households) + I(total_bedrooms/households) +
-                I((total_rooms/households)^2) + I((total_bedrooms/households)^2) +
-                I((total_rooms/households)^3) + I((total_bedrooms/households)^3) +
-                I((total_rooms/households)^4) + I((total_bedrooms/households)^4)")
+                I(longitude*hocean) + I(longitude*near_bay) + I(longitude*near_ocean) +
+                I((longitude*hocean)^2) + I((longitude*near_bay)^2) + I((longitude*near_ocean)^2) +
+                I((longitude*hocean)^3) + I((longitude*near_bay)^3) + I((longitude*near_ocean)^3)")
 
 
-model_11 = lm(formula = formula_final, data=trainSet)
+model_11 = lm(formula = formula_5, data=trainSet)
 summary(model_11)
 
 valPred = predict(model_11, valSet)
