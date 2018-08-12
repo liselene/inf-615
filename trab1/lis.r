@@ -1,3 +1,7 @@
+########################################
+# Trabalho 1 - INF-615
+# Nome(s): Liselene Borges e Marcos Scarpim
+########################################
 rm(list=ls())
 setwd("~/Projects/ComplexData/inf-615/trab1")
 
@@ -30,7 +34,7 @@ summary(trainSet)
 summary(valSet)
 summary(testSet)
 
-correlation<-cor(trainSet[,-9])
+correlation<-cor(trainSet[,1:8])
 
 mae <- function(formula,trainSet,valSet){
   model_simple = lm(formula = formula, data=trainSet)
@@ -142,7 +146,7 @@ maes_val[6]<-mae(formula_final,trainSet,valSet)
 maes_test[6]<-mae(formula_final,trainSet,testSet)
 maes_train[6]<-mae(formula_final,trainSet,trainSet)
 
-#
+# Modelo de grau 6
 base_formula <- "median_house_value ~ longitude + latitude + housing_median_age +
 total_rooms + total_bedrooms + population + households + median_income +
 hocean + near_bay + inland + near_ocean"
