@@ -76,3 +76,42 @@ TNR
 #takes into account the number of samples for each class
 ACCNorm_glm = mean(c(TPR, TNR))
 ACCNorm_glm
+
+
+## Implemente soluções alternativas baseadas em regressão logística (através da combinação dos features exis-
+# tentes) para melhorar os resultados obtidos no baseline.
+cor(train[,-12])
+regra <- "quality ~ fixed.acidity+volatile.acidity+citric.acid+
+          residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates"
+formula = as.formula(regra)
+logRegModel = glm(formula, train, family=binomial(link="logit"))
+summary(logRegModel)
+
+# probabilities of being the class 0
+valPred = predict(logRegModel, val[,-12], type="response")
+valPred
+
+#converting to class
+valPred[valPred >= 0.5] = 1
+valPred[valPred < 0.5] = 0
+
+cm <- as.matrix(table(Actual = val$quality, Predicted = valPred))
+cm
+
+#ACC = (TP + TN) / total
+ACC = (cm[1,1] + cm[2,2]) / sum(cm)
+ACC
+
+#TPR = (TP) / (TP + FN)		ou		TPR = TP / nPos
+TPR = cm[2,2] / (cm[2,2] + cm[2,1])
+TPR
+
+#TNR = (TN) / (TN + FP)		ou		TNR = TN / nNeg 
+TNR = cm[1,1] / (cm[1,1] + cm[1,2])
+TNR
+
+#ACC normalized by class
+#takes into account the number of samples for each class
+ACCNorm_glm = mean(c(TPR, TNR))
+ACCNorm_glm
+
