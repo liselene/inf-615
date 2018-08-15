@@ -51,7 +51,7 @@ summary(logRegModel)
 
 # probabilities of being the class 0
 valPred = predict(logRegModel, val[,-12], type="response")
-valPred
+#valPred
 
 #converting to class
 valPred[valPred >= 0.5] = 1
