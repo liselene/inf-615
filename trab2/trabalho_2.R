@@ -192,13 +192,13 @@ calc_regr_pasting <- function(train_dfs, regra, test_df) {
     
     x_test = model.matrix(regra, test_df)
     testPred = predict(model,newx = x_test, type="response")
-    #testPred[testPred < 0.5] = 0
-    #testPred[testPred >= 0.5] = 1
+    #testPred[testPred < 0.5] = 0 #VARIAR - add or remove
+    #testPred[testPred >= 0.5] = 1 #VARIAR - add or remove
     
     final_Pred <- final_Pred + testPred
   }
-  final_Pred[final_Pred <= length(train_dfs)/4] = 0
-  final_Pred[final_Pred > length(train_dfs)/4] = 1
+  final_Pred[final_Pred <= length(train_dfs)/4] = 0 # VARIAR - divisor of length(train_dfs)
+  final_Pred[final_Pred > length(train_dfs)/4] = 1 # VARIAR - divisor of length(train_dfs)
   
   cm <- as.matrix(table(Actual = val$quality, Predicted = final_Pred))
   print(cm)
