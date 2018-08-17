@@ -3,6 +3,7 @@
 # Nome(s): Liselene Borges e
 ########################################
 rm(list=ls())
+setwd("~/Documents/Curso - Complex Data/INF-0615/Tarefa1/inf-615/trab2")
 #setwd("~/Projects/ComplexData/inf-615/trab2")
 
 ACC <- function(cm) {
@@ -187,18 +188,18 @@ calc_regr_pasting <- function(train_dfs, regra, test_df) {
     x = model.matrix(regra, train_dfs[[i]])
     y = train_dfs[[i]]$quality
     
-    model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.00005)
+    model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.00001)
     #coef(model)
     
     x_test = model.matrix(regra, test_df)
     testPred = predict(model,newx = x_test, type="response")
-    #testPred[testPred < 0.5] = 0 #VARIAR - add or remove
-    #testPred[testPred >= 0.5] = 1 #VARIAR - add or remove
+    testPred[testPred < 0.15] = 0 #VARIAR - add or remove
+    testPred[testPred >= 0.3] = 1 #VARIAR - add or remove
     
     final_Pred <- final_Pred + testPred
   }
-  final_Pred[final_Pred <= length(train_dfs)/4] = 0 # VARIAR - divisor of length(train_dfs)
-  final_Pred[final_Pred > length(train_dfs)/4] = 1 # VARIAR - divisor of length(train_dfs)
+  final_Pred[final_Pred <= length(train_dfs)/3.8] = 0 # VARIAR - divisor of length(train_dfs)
+  final_Pred[final_Pred > length(train_dfs)/3.8] = 1 # VARIAR - divisor of length(train_dfs)
   
   cm <- as.matrix(table(Actual = val$quality, Predicted = final_Pred))
   print(cm)
@@ -214,8 +215,32 @@ nrow(good_wines_df)
 regra <- quality ~ fixed.acidity+volatile.acidity+citric.acid+
   residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol+
   I(fixed.acidity^2)+I(volatile.acidity^2)+I(citric.acid^2)+
-  I(residual.sugar^2)+I(chlorides^2)+I(free.sulfur.dioxide^2)+I(total.sulfur.dioxide^2)+
-  I(density^2)+I(pH^2)+I(sulphates^2)+I(alcohol^2)+0
+  I(residual.sugar^2)+I(chlorides^2)+I(free.sulfur.dioxide^2)+
+  I(pH^2)+I(sulphates^2)+
+  I(fixed.acidity^3)+I(volatile.acidity^3)+I(citric.acid^3)+
+  I(residual.sugar^3)+I(chlorides^3)+I(free.sulfur.dioxide^3)+
+  I(pH^3)+I(sulphates^3)+
+  I(fixed.acidity*volatile.acidity+citric.acid)+
+  I((fixed.acidity+volatile.acidity+citric.acid)^2)+
+  I((fixed.acidity+volatile.acidity+citric.acid)^3)+
+  I((free.sulfur.dioxide+total.sulfur.dioxide))+
+  I((free.sulfur.dioxide+total.sulfur.dioxide)^2)+
+  I((free.sulfur.dioxide+total.sulfur.dioxide)^3)+
+  I(residual.sugar*alcohol)+
+  I((residual.sugar*alcohol)^2)+
+  I((residual.sugar*alcohol)^3)+
+  I(fixed.acidity*volatile.acidity*citric.acid*
+      residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)+
+  I((fixed.acidity*volatile.acidity*citric.acid*
+      residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)^2)+
+  I((fixed.acidity*volatile.acidity*citric.acid*
+       residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)^3)+
+  I(fixed.acidity+volatile.acidity+citric.acid+
+      residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)+
+  I((fixed.acidity+volatile.acidity+citric.acid+
+       residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)^2)+
+  I((fixed.acidity+volatile.acidity+citric.acid+
+       residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)^3)+0
 
 train_dfs <- list()
 
@@ -275,43 +300,7 @@ cm <- calc_regr_pasting(train_dfs, regra, val)
 all_ACCs <- c(all_ACCs, ACC(cm))
 all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-# 13 datasets
-train_dfs[[12]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                         good_wines_df[sample(nrow(good_wines_df), 770),])
-train_dfs[[13]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                         good_wines_df[sample(nrow(good_wines_df), 770),])
-cm <- calc_regr_pasting(train_dfs, regra, val)
-all_ACCs <- c(all_ACCs, ACC(cm))
-all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
-
-# 15 datasets
-train_dfs[[14]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                        good_wines_df[sample(nrow(good_wines_df), 770),])
-train_dfs[[15]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                        good_wines_df[sample(nrow(good_wines_df), 770),])
-cm <- calc_regr_pasting(train_dfs, regra, val)
-all_ACCs <- c(all_ACCs, ACC(cm))
-all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
-
-# 17 datasets
-train_dfs[[16]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                         good_wines_df[sample(nrow(good_wines_df), 770),])
-train_dfs[[17]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                         good_wines_df[sample(nrow(good_wines_df), 770),])
-cm <- calc_regr_pasting(train_dfs, regra, val)
-all_ACCs <- c(all_ACCs, ACC(cm))
-all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
-
-# 19 datasets
-train_dfs[[18]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                         good_wines_df[sample(nrow(good_wines_df), 770),])
-train_dfs[[19]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
-                         good_wines_df[sample(nrow(good_wines_df), 770),])
-cm <- calc_regr_pasting(train_dfs, regra, val)
-all_ACCs <- c(all_ACCs, ACC(cm))
-all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
-
-nModels <- c(1, 3, 5, 7, 9, 11, 13, 15, 17, 19)
+nModels <- c(1, 3, 5, 7, 9, 11)
 print(all_ACCs)
 print(all_ACCsNorm)
 
