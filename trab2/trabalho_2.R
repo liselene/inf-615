@@ -40,12 +40,12 @@ boxplot(train[,-12],
 
 # plot apenas dos vinhos ruins
 boxplot(train[train$quality == 0, c(1, 2, 3, 4, 5, 8, 9, 10, 11)], 
-        main="Range dos dados", 
+        main="Quality = 0", 
         xlab="Tipo", ylab="Grandeza", ylim = c(0,30))
 
 # plot apenas dos vinhos bons
 boxplot(train[train$quality == 1, c(1, 2, 3, 4, 5, 8, 9, 10, 11)], 
-        main="Range dos dados", 
+        main="Quality = 1", 
         xlab="Tipo", ylab="Grandeza", ylim = c(0,30))
 
 ## Qual o intervalo de valores de cada feature?
@@ -179,112 +179,140 @@ ACC(cm)
 ACCNorm(cm)
 
 ########################################################################################
-# Marcos - glmnet GRAU 2
+# Aplicando o método de pasting, criando diversos dataframes com dados duplicados
 ########################################################################################
+calc_regr_pasting <- function(train_dfs, regra, test_df) {
+  final_Pred <- rep(0, nrow(test_df))
+  for (i in 1:length(train_dfs)) {
+    x = model.matrix(regra, train_dfs[[i]])
+    y = train_dfs[[i]]$quality
+    
+    model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.00005)
+    #coef(model)
+    
+    x_test = model.matrix(regra, test_df)
+    testPred = predict(model,newx = x_test, type="response")
+    #testPred[testPred < 0.5] = 0
+    #testPred[testPred >= 0.5] = 1
+    
+    final_Pred <- final_Pred + testPred
+  }
+  final_Pred[final_Pred <= length(train_dfs)/4] = 0
+  final_Pred[final_Pred > length(train_dfs)/4] = 1
+  
+  cm <- as.matrix(table(Actual = val$quality, Predicted = final_Pred))
+  print(cm)
+  return(cm)
+}
+
+bad_wines_df = train[train$quality == 0, ]
+good_wines_df = train[train$quality == 1, ]
+
+nrow(bad_wines_df)
+nrow(good_wines_df)
 
 regra <- quality ~ fixed.acidity+volatile.acidity+citric.acid+
-  residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+
-  density+pH+sulphates+alcohol+
+  residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol+
   I(fixed.acidity^2)+I(volatile.acidity^2)+I(citric.acid^2)+
   I(residual.sugar^2)+I(chlorides^2)+I(free.sulfur.dioxide^2)+I(total.sulfur.dioxide^2)+
   I(density^2)+I(pH^2)+I(sulphates^2)+I(alcohol^2)+0
 
-#array of zeros to sum all valPred's
-final_Pred <- rep(0, nrow(val))
-for (i in 1:4) {
-  x = model.matrix(regra, dfs[[i]])
-  y = dfs[[i]]$quality
-  
-  model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.00005)
-  coef(model)
-  
-  x_test = model.matrix(regra, val)
-  testPred = predict(model,newx = x_test, type="response")
-  final_Pred <- final_Pred + testPred
-}
+train_dfs <- list()
 
-final_Pred[final_Pred < 1.45] = 0
-final_Pred[final_Pred >= 1.45] = 1
+all_ACCs = c()
+all_ACCsNorm = c()
+# 1 dataset
+train_dfs[[1]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                  good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-cm <- as.matrix(table(Actual = val$quality, Predicted = final_Pred))
-print(cm)
 
-ACC(cm)
-ACCNorm(cm)
+# 3 datasets
+train_dfs[[2]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[3]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-########################################################################################
-# Marcos - glmnet GRAU 3
-########################################################################################
+# 5 datasets
+train_dfs[[4]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[5]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-regra <- quality ~ fixed.acidity+volatile.acidity+citric.acid+
-  residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+
-  density+pH+sulphates+alcohol+
-  I(fixed.acidity^2)+I(volatile.acidity^2)+I(citric.acid^2)+
-  I(residual.sugar^2)+I(chlorides^2)+I(free.sulfur.dioxide^2)+I(total.sulfur.dioxide^2)+
-  I(density^2)+I(pH^2)+I(sulphates^2)+I(alcohol^2)+
-  I(fixed.acidity^3)+I(volatile.acidity^3)+I(citric.acid^3)+
-  I(residual.sugar^3)+I(chlorides^3)+I(free.sulfur.dioxide^3)+I(total.sulfur.dioxide^3)+
-  I(density^3)+I(pH^3)+I(sulphates^3)+I(alcohol^3)+0
+# 7 datasets
+train_dfs[[6]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[7]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
 
-#array of zeros to sum all valPred's
-final_Pred <- rep(0, nrow(val))
-for (i in 1:4) {
-  x = model.matrix(regra, dfs[[i]])
-  y = dfs[[i]]$quality
-  
-  model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.00003)
-  coef(model)
-  
-  x_test = model.matrix(regra, val)
-  testPred = predict(model,newx = x_test, type="response")
-  final_Pred <- final_Pred + testPred
-}
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-final_Pred[final_Pred < 1.1] = 0
-final_Pred[final_Pred >= 1.1] = 1
+# 9 datasets
+train_dfs[[8]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[9]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-cm <- as.matrix(table(Actual = val$quality, Predicted = final_Pred))
-print(cm)
+# 11 datasets
+train_dfs[[10]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[11]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-ACC(cm)
-ACCNorm(cm)
+# 13 datasets
+train_dfs[[12]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                         good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[13]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                         good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-########################################################################################
-# Marcos - glmnet GRAU 4
-########################################################################################
+# 15 datasets
+train_dfs[[14]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[15]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                        good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-regra <- quality ~ fixed.acidity+volatile.acidity+citric.acid+
-  residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+
-  density+pH+sulphates+alcohol+
-  I(fixed.acidity^2)+I(volatile.acidity^2)+I(citric.acid^2)+
-  I(residual.sugar^2)+I(chlorides^2)+I(free.sulfur.dioxide^2)+I(total.sulfur.dioxide^2)+
-  I(density^2)+I(pH^2)+I(sulphates^2)+I(alcohol^2)+
-  I(fixed.acidity^3)+I(volatile.acidity^3)+I(citric.acid^3)+
-  I(residual.sugar^3)+I(chlorides^3)+I(free.sulfur.dioxide^3)+I(total.sulfur.dioxide^3)+
-  I(density^3)+I(pH^3)+I(sulphates^3)+I(alcohol^3)+
-  I(fixed.acidity^4)+I(volatile.acidity^4)+I(citric.acid^4)+
-  I(residual.sugar^4)+I(chlorides^4)+I(free.sulfur.dioxide^4)+I(total.sulfur.dioxide^4)+
-  I(density^4)+I(pH^4)+I(sulphates^4)+I(alcohol^4)+0
+# 17 datasets
+train_dfs[[16]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                         good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[17]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                         good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-#array of zeros to sum all valPred's
-final_Pred <- rep(0, nrow(val))
-for (i in 1:4) {
-  x = model.matrix(regra, dfs[[i]])
-  y = dfs[[i]]$quality
-  
-  model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.0001)
-  coef(model)
-  
-  x_test = model.matrix(regra, val)
-  testPred = predict(model,newx = x_test, type="response")
-  final_Pred <- final_Pred + testPred
-}
+# 19 datasets
+train_dfs[[18]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                         good_wines_df[sample(nrow(good_wines_df), 770),])
+train_dfs[[19]] <- rbind(bad_wines_df[sample(nrow(bad_wines_df), 770),], 
+                         good_wines_df[sample(nrow(good_wines_df), 770),])
+cm <- calc_regr_pasting(train_dfs, regra, val)
+all_ACCs <- c(all_ACCs, ACC(cm))
+all_ACCsNorm <- c(all_ACCsNorm, ACCNorm(cm))
 
-final_Pred[final_Pred < 1.2] = 0
-final_Pred[final_Pred >= 1.2] = 1
+nModels <- c(1, 3, 5, 7, 9, 11, 13, 15, 17, 19)
+print(all_ACCs)
+print(all_ACCsNorm)
 
-cm <- as.matrix(table(Actual = val$quality, Predicted = final_Pred))
-print(cm)
-
-ACC(cm)
-ACCNorm(cm)
+# TODO -> plot this graphic, perhaps generate the same for train dataset
