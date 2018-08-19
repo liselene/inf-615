@@ -4,7 +4,7 @@
 ########################################
 rm(list=ls())
 #setwd("~/Documents/Curso - Complex Data/INF-0615/Tarefa1/inf-615/trab2")
-setwd("~/Projects/ComplexData/inf-615/trab2")
+#setwd("~/Projects/ComplexData/inf-615/trab2")
 
 ACC <- function(cm) {
   #ACC = (TP + TN) / total
@@ -53,14 +53,14 @@ boxplot(train[train$quality == 1, c(1, 2, 3, 4, 5, 8, 9, 10, 11)],
 sapply(train, max)
 sapply(train, min)
 
-## Há aproximadamente a mesma quantidade de exemplos de cada classe? Ou seja, as classes estão balanceadas?
-#As classes são desbalanceadas, tem 4x mais amotras da classe 0 do que da 1: 771(1) e 3127(0)
+## H?? aproximadamente a mesma quantidade de exemplos de cada classe? Ou seja, as classes est??o balanceadas?
+#As classes s??o desbalanceadas, tem 4x mais amotras da classe 0 do que da 1: 771(1) e 3127(0)
 sum(train$quality==1)
 sum(train$quality==0)
 
-## Como você lidaria com classes desbalanceadas?
-# As métricas de avaliação do classificador levarão em consideração a proporção de amostras de cada classe
-# utilizando, por exemplo, a matriz de confusão. Calculando também precisão(total depositivos corretos/(total de positivos corretos + incorretos)
+## Como voc?? lidaria com classes desbalanceadas?
+# As m??tricas de avalia????o do classificador levar??o em considera????o a propor????o de amostras de cada classe
+# utilizando, por exemplo, a matriz de confus??o. Calculando tamb??m precis??o(total depositivos corretos/(total de positivos corretos + incorretos)
 # e o recall (total de negativos corretos/(total de negativo corretos + incorretos))
 
 ## Normalize os dados de modo que eles fiquem todos no mesmo intervalo.
@@ -73,7 +73,7 @@ train[,1:11] = sweep(train[,1:11], 2, train_sd, "/")
 val[,1:11] = sweep(val[,1:11], 2, train_mean, "-")
 val[,1:11] = sweep(val[,1:11], 2, train_sd, "/")
 
-## Treine uma regressão logística com todas as features para predizer a qualidade dos vinhos (baseline).
+## Treine uma regress??o log??stica com todas as features para predizer a qualidade dos vinhos (baseline).
 formula = as.formula("quality ~ .")
 logRegModel = glm(formula, train, family=binomial(link="logit"))
 summary(logRegModel)
@@ -93,7 +93,7 @@ ACC(cm)
 ACCNorm(cm)
 
 
-## Implemente soluções alternativas baseadas em regressão logística (através da combinação dos features exis-
+## Implemente solu????es alternativas baseadas em regress??o log??stica (atrav??s da combina????o dos features exis-
 # tentes) para melhorar os resultados obtidos no baseline.
 #
 # Criar 4 modelos diferentes, separando os dados de treino em 4 partes
@@ -159,7 +159,7 @@ ACC(cm)
 ACCNorm(cm)
 
 ########################################################################################
-# Aplicando o método de pasting, criando diversos dataframes com dados duplicados
+# Aplicando o m??todo de pasting, criando diversos dataframes com dados duplicados
 ########################################################################################
 calc_regr_pasting <- function(train_dfs, regra, test_df) {
   final_Pred <- rep(0, nrow(test_df))
@@ -167,18 +167,18 @@ calc_regr_pasting <- function(train_dfs, regra, test_df) {
     x = model.matrix(regra, train_dfs[[i]])
     y = train_dfs[[i]]$quality
     
-    model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.00001)
+    model = glmnet(x, y,  family="binomial", alpha=0, lambda = 0.0008)
     #coef(model)
     
     x_test = model.matrix(regra, test_df)
     testPred = predict(model,newx = x_test, type="response")
-    testPred[testPred < 0.15] = 0 #VARIAR - add or remove
+    testPred[testPred < 0.2] = 0 #VARIAR - add or remove
     testPred[testPred >= 0.3] = 1 #VARIAR - add or remove
     
     final_Pred <- final_Pred + testPred
   }
-  final_Pred[final_Pred <= length(train_dfs)/3.8] = 0 # VARIAR - divisor of length(train_dfs)
-  final_Pred[final_Pred > length(train_dfs)/3.8] = 1 # VARIAR - divisor of length(train_dfs)
+  final_Pred[final_Pred <= length(train_dfs)/4.1] = 0 # VARIAR - divisor of length(train_dfs)
+  final_Pred[final_Pred > length(train_dfs)/4.1] = 1 # VARIAR - divisor of length(train_dfs)
   
   cm <- as.matrix(table(Actual = val$quality, Predicted = final_Pred))
   print(cm)
@@ -199,7 +199,7 @@ regra <- quality ~ fixed.acidity+volatile.acidity+citric.acid+
   I(fixed.acidity^3)+I(volatile.acidity^3)+I(citric.acid^3)+
   I(residual.sugar^3)+I(chlorides^3)+I(free.sulfur.dioxide^3)+
   I(pH^3)+I(sulphates^3)+
-  I(fixed.acidity*volatile.acidity+citric.acid)+
+  I(fixed.acidity+volatile.acidity+citric.acid)+
   I((fixed.acidity+volatile.acidity+citric.acid)^2)+
   I((fixed.acidity+volatile.acidity+citric.acid)^3)+
   I((free.sulfur.dioxide+total.sulfur.dioxide))+
@@ -208,18 +208,12 @@ regra <- quality ~ fixed.acidity+volatile.acidity+citric.acid+
   I(residual.sugar*alcohol)+
   I((residual.sugar*alcohol)^2)+
   I((residual.sugar*alcohol)^3)+
-  I(fixed.acidity*volatile.acidity*citric.acid*
-      residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)+
-  I((fixed.acidity*volatile.acidity*citric.acid*
-      residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)^2)+
-  I((fixed.acidity*volatile.acidity*citric.acid*
-       residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)^3)+
-  I(fixed.acidity+volatile.acidity+citric.acid+
-      residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)+
-  I((fixed.acidity+volatile.acidity+citric.acid+
-       residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)^2)+
-  I((fixed.acidity+volatile.acidity+citric.acid+
-       residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)^3)+0
+  I(residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)+
+  I((residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)^2)+
+  I((residual.sugar*chlorides*free.sulfur.dioxide*pH*sulphates*alcohol)^3)+
+  I(residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)+
+  I((residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)^2)+
+  I((residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates+alcohol)^3)+0
 
 train_dfs <- list()
 
