@@ -1,10 +1,10 @@
 ########################################
 # Trabalho 2 - INF-615
-# Nome(s): Liselene Borges e
+# Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
 rm(list=ls())
-setwd("~/Documents/Curso - Complex Data/INF-0615/Tarefa1/inf-615/trab2")
-#setwd("~/Projects/ComplexData/inf-615/trab2")
+#setwd("~/Documents/Curso - Complex Data/INF-0615/Tarefa1/inf-615/trab2")
+setwd("~/Projects/ComplexData/inf-615/trab2")
 
 ACC <- function(cm) {
   #ACC = (TP + TN) / total
@@ -79,8 +79,8 @@ logRegModel = glm(formula, train, family=binomial(link="logit"))
 summary(logRegModel)
 
 # probabilities of being the class 0
-valPred = predict(logRegModel, val[,-12], type="response")
-#valPred
+valPred = predict(logRegModel, val, type="response")
+valPred
 
 #converting to class
 valPred[valPred >= 0.5] = 1
@@ -95,30 +95,9 @@ ACCNorm(cm)
 
 ## Implemente soluções alternativas baseadas em regressão logística (através da combinação dos features exis-
 # tentes) para melhorar os resultados obtidos no baseline.
-cor(train[,-12])
-regra <- "quality ~ fixed.acidity+volatile.acidity+citric.acid+
-          residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates"
-formula = as.formula(regra)
-logRegModel = glm(formula, train, family=binomial(link="logit"))
-summary(logRegModel)
-
-# probabilities of being the class 0
-valPred = predict(logRegModel, val[,-12], type="response")
-valPred
-
-#converting to class
-valPred[valPred >= 0.5] = 1
-valPred[valPred < 0.5] = 0
-
-cm <- as.matrix(table(Actual = val$quality, Predicted = valPred))
-cm
-
-ACC(cm)
-ACCNorm(cm)
-
-########################################################################################
-# Marcos - Vou criar 4 modelos diferentes, separando os dados de treino em 4 partes
-########################################################################################
+#
+# Criar 4 modelos diferentes, separando os dados de treino em 4 partes
+##
 bad_wines_df = train[train$quality == 0, ]
 good_wines_df = train[train$quality == 1, ]
 
@@ -130,8 +109,8 @@ dfs[[2]] <- rbind(good_wines_df, bad_dfs[[2]])
 dfs[[3]] <- rbind(good_wines_df, bad_dfs[[3]])
 dfs[[4]] <- rbind(good_wines_df, bad_dfs[[4]])
 
-regra <- "quality ~ fixed.acidity+volatile.acidity+citric.acid+
-          residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates"
+regra <- "quality ~ ."#fixed.acidity+volatile.acidity+citric.acid+
+          #residual.sugar+chlorides+free.sulfur.dioxide+pH+sulphates"
 formula = as.formula(regra)
 
 #array of zeros to sum all valPred's
@@ -152,7 +131,7 @@ ACC(cm)
 ACCNorm(cm)
 
 ########################################################################################
-# Marcos - Mesma coisa com glmnet
+# Mesma coisa com glmnet
 ########################################################################################
 library("glmnet")
 
@@ -304,4 +283,8 @@ nModels <- c(1, 3, 5, 7, 9, 11)
 print(all_ACCs)
 print(all_ACCsNorm)
 
-# TODO -> plot this graphic, perhaps generate the same for train dataset
+# plot graphic for different datasets using pasting
+library(ggplot2)
+type <- c(rep("ACCs",6),rep("ACCsNorm",6))
+graphic_data <- data.frame(Dataset = rep(nModels,2), Accuracy=c(all_ACCs,all_ACCsNorm),Group=type)
+ggplot(graphic_data,aes(x=Dataset, y=Accuracy, group=Group,colour=Group))+geom_line()
