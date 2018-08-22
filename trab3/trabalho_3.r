@@ -3,7 +3,20 @@
 # Nome(s): Liselene Borges e 
 ########################################
 rm(list=ls())
-setwd("~/Projects/ComplexData/inf-615/trab3")
+#setwd("~/Projects/ComplexData/inf-615/trab3")
+setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab3")
+
+predictAndEvaluate <- function(model, data){
+  prediction = predict(model, data)
+  prediction = as.numeric(prediction[,2] >= 0.5)
+  
+  CM = as.matrix(table(Actual = data$approved, Predicted = prediction))
+  TPR = CM[2,2] / (CM[2,2] + CM[2,1])
+  TNR = CM[1,1] / (CM[1,1] + CM[1,2])
+  ACCNorm = mean(c(TPR, TNR))
+  
+  return(list(CM=CM, ACCNorm=ACCNorm))
+}
 
 ## carregando os dados
 train<-read.csv("student_performance_train.data")
@@ -15,91 +28,138 @@ summary(val)
 nrow(train) #626
 nrow(val) #209
 
-## range dos dados
-boxplot(train[train$approved==1,-31], 
-        main="Range dos dados dos aprovados", 
-        xlab="Tipo", ylab="Grandeza")
-
-boxplot(train[train$approved==0,-31], 
-        main="Range dos dados dos reprovados", 
-        xlab="Tipo", ylab="Grandeza")
-
-## discretização dos dados
-train$schoolGP = as.numeric(train$school == "GP")
-train$school = NULL
-
-train$sexF = as.numeric(train$sex == "F")
-train$sex = NULL
-
-train$addressU = as.numeric(train$address == "U")
-train$address = NULL
-
-train$famSizeGT3 = as.numeric(train$famsize == "GT3")
-train$famsize = NULL
-
-train$PstatusA = as.numeric(train$Pstatus == "A")
-train$Pstatus = NULL
-
-levels <- unique(train$Mjob)
-train$MJob_other = as.numeric(train$Mjob == levels[1])
-train$MJob_services = as.numeric(train$Mjob == levels[2])
-train$MJob_teacher = as.numeric(train$Mjob == levels[3])
-train$MJob_health = as.numeric(train$Mjob == levels[4])
-train$Mjob = NULL
-
-levels <- unique(train$Fjob)
-train$FJob_other = as.numeric(train$Fjob == levels[1])
-train$FJob_services = as.numeric(train$Fjob == levels[2])
-train$FJob_teacher = as.numeric(train$Fjob == levels[3])
-train$FJob_health = as.numeric(train$Fjob == levels[4])
-train$Fjob = NULL
-
-levels <- unique(train$reason)
-train$reason_reputation = as.numeric(train$reason == levels[1])
-train$reason_home = as.numeric(train$reason == levels[2])
-train$reason_course = as.numeric(train$reason == levels[3])
-train$reason = NULL
-
-levels <- unique(train$guardian)
-train$guardian_father = as.numeric(train$guardian == levels[1])
-train$guardian_mother = as.numeric(train$guardian == levels[2])
-train$guardian = NULL
-
-train$schoolsup_yes = as.numeric(train$schoolsup == "yes")
-train$schoolsup = NULL
-
-train$famsup_yes = as.numeric(train$famsup == "yes")
-train$famsup = NULL
-
-train$paid_yes = as.numeric(train$paid == "yes")
-train$paid = NULL
-
-train$activities_yes = as.numeric(train$activities == "yes")
-train$activities = NULL
-
-train$nursery_yes = as.numeric(train$nursery == "yes")
-train$nursery = NULL
-
-train$higher_yes = as.numeric(train$higher == "yes")
-train$higher = NULL
-
-train$internet_yes = as.numeric(train$internet == "yes")
-train$internet = NULL
-
-train$romantic_yes = as.numeric(train$romantic == "yes")
-train$romantic = NULL
-
 ## intervalo das features
-sapply(train, max)
-sapply(train, min)
+#sapply(train, max)
+#sapply(train, min)
 
 ## quantidade de exemplos de cada classe
 sum(train$approved==1)
 sum(train$approved==0)
 
-## normaliza !!!!!ver quais features precisam!!!!
-#train_mean <- colMeans(train[,1:11]) #mean of each feature
-#train_sd  <- apply(train[,1:11], 2, sd) #std of each feature
+# DECISION TREE MODELS
+library(rpart)
+#If we want to use Entropy + Gain of Information
+treeModel = rpart(formula=approved ~ ., 
+                  data=train, method="class",
+                  parms= list(split="information"))
 
-#train[,1:11] = sweep(train[,1:11], 2, train_mean, "-")
-#train[,1:11] = sweep(train[,1:11], 2, train_sd, "/")
+
+#If we want to use Gini to select features
+treeModel = rpart(formula=approved~ ., 
+                  data=train, method="class",
+                  parms= list(split="gini"))
+
+#Allowing it to grow
+treeModel = rpart(formula=approved~ ., 
+                  data=train, method="class",
+                  control=rpart.control(minsplit=10, cp=0.0001),
+                  parms= list(split="information"))
+
+summary(treeModel)
+
+#Save the complete DT into file
+post(treeModel, file = "tree2.ps",title = "Classification Tree for Income")
+
+
+
+
+######### POST PRUNE ########
+
+#Print the table with complexity parameters
+printcp(treeModel)
+
+#Prune the tree based on the complexity parameter that minimizes 
+#the error in cross-validation (xerror)
+minCP = treeModel$cptable[which.min(treeModel$cptable[,"xerror"]),"CP"]
+
+ptree = prune(treeModel, cp=minCP)
+summary(ptree)
+
+
+treeEval = predictAndEvaluate(treeModel, val)
+treeEval$CM
+treeEval$ACCNorm
+
+#prunned tree
+ptreeEval = predictAndEvaluate(ptree, val)
+ptreeEval$CM
+ptreeEval$ACCNorm
+
+
+########## ACC Vs Depth 
+# Let's see how the acc varies as we increase the tree's depth
+accPerDepth = data.frame(depth=numeric(30), accTrain=numeric(30), accVal=numeric(30))
+for (maxDepth in 3:30){
+  treeModel = rpart(formula=approved~ ., 
+                    data=train, method="class",
+                    control=rpart.control(minsplit=10, cp=0.0001, maxdepth=maxDepth),
+                    parms= list(split="information"))
+  
+  trainResults = predictAndEvaluate(treeModel, train)
+  valResults = predictAndEvaluate(treeModel, val)
+  
+  accPerDepth[maxDepth,] = c(maxDepth, trainResults$ACCNorm, valResults$ACCNorm)
+}
+
+#Plot
+library("reshape2")
+library("ggplot2")
+
+accPerDepth <- melt(accPerDepth, id="depth")  # convert to long format
+
+ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line()
+
+
+
+
+
+############# RANDOM FOREST
+#install.packages('randomForest')
+library(randomForest)
+#help(randomForest)
+
+
+#Train RF model
+rfModel = randomForest(formula=approved~ ., data=train, ntree=400)
+
+
+#Plotting the error
+layout(matrix(c(1,2),nrow=1), width=c(4,1)) 
+par(mar=c(5,4,4,0)) #No margin on the right side
+plot(rfModel, log="y")
+par(mar=c(5,0,4,2)) #No margin on the left side
+plot(c(0,1),type="n", axes=F, xlab="", ylab="")
+legend("top", colnames(rfModel$err.rate),col=1:4,cex=0.8,fill=1:4)
+
+
+
+
+#Confusion Matrix
+rfPrediction = predict(rfModel, val) 
+rfPrediction = as.numeric(rfPrediction >= 0.5)
+rfCM = as.matrix(table(Actual = val$approved, Predicted = rfPrediction))
+rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
+rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
+rfACCNorm = mean(c(rfTPR, rfTNR))
+
+
+
+
+nTree = c(10,25, 50, 100, 500)
+accPerNTree = data.frame(ntree=numeric(5), accTrain=numeric(5), accVal=numeric(5))
+for (i in 1:5){
+  rfModel = randomForest(formula=class~ ., data= trainData, ntree=nTree[i])
+  rfPrediction = predict(rfModel, trainData) 
+  rfCM = as.matrix(table(Actual = trainData$class, Predicted = rfPrediction))
+  rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
+  rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
+  rfACCNormTrain = mean(c(rfTPR, rfTNR))
+  
+  rfPrediction = predict(rfModel, valData) 
+  rfCM = as.matrix(table(Actual = valData$class, Predicted = rfPrediction))
+  rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
+  rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
+  rfACCNormVal = mean(c(rfTPR, rfTNR))
+  
+  accPerNTree[i,] = c(nTree[i], rfACCNormTrain, rfACCNormVal)
+}
