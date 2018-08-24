@@ -32,6 +32,9 @@ nrow(val) #209
 #sapply(train, max)
 #sapply(train, min)
 
+train$approved = as.factor(train$approved)
+val$approved = as.factor(val$approved)
+
 ## quantidade de exemplos de cada classe
 sum(train$approved==1)
 sum(train$approved==0)
@@ -120,7 +123,7 @@ library(randomForest)
 
 
 #Train RF model
-rfModel = randomForest(formula=approved~ ., data=train, ntree=400)
+rfModel = randomForest(formula=approved~ ., data=train, ntree=400, type = "classification")
 
 
 #Plotting the error
@@ -136,7 +139,6 @@ legend("top", colnames(rfModel$err.rate),col=1:4,cex=0.8,fill=1:4)
 
 #Confusion Matrix
 rfPrediction = predict(rfModel, val) 
-rfPrediction = as.numeric(rfPrediction >= 0.5)
 rfCM = as.matrix(table(Actual = val$approved, Predicted = rfPrediction))
 rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
 rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
@@ -148,18 +150,22 @@ rfACCNorm = mean(c(rfTPR, rfTNR))
 nTree = c(10,25, 50, 100, 500)
 accPerNTree = data.frame(ntree=numeric(5), accTrain=numeric(5), accVal=numeric(5))
 for (i in 1:5){
-  rfModel = randomForest(formula=class~ ., data= trainData, ntree=nTree[i])
-  rfPrediction = predict(rfModel, trainData) 
-  rfCM = as.matrix(table(Actual = trainData$class, Predicted = rfPrediction))
+  rfModel = randomForest(formula=approved~ ., data= train, ntree=nTree[i])
+  rfPrediction = predict(rfModel, train) 
+  rfCM = as.matrix(table(Actual = train$approved, Predicted = rfPrediction))
   rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
   rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
   rfACCNormTrain = mean(c(rfTPR, rfTNR))
   
-  rfPrediction = predict(rfModel, valData) 
-  rfCM = as.matrix(table(Actual = valData$class, Predicted = rfPrediction))
+  rfPrediction = predict(rfModel, val) 
+  rfCM = as.matrix(table(Actual = val$approved, Predicted = rfPrediction))
   rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
   rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
   rfACCNormVal = mean(c(rfTPR, rfTNR))
   
   accPerNTree[i,] = c(nTree[i], rfACCNormTrain, rfACCNormVal)
 }
+
+
+
+
