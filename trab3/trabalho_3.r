@@ -1,10 +1,10 @@
 ########################################
 # Trabalho 3 - INF-615
-# Nome(s): Liselene Borges e 
+# Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
 rm(list=ls())
-#setwd("~/Projects/ComplexData/inf-615/trab3")
-setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab3")
+setwd("~/Projects/ComplexData/inf-615/trab3")
+#setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab3")
 
 predictAndEvaluate <- function(model, data){
   prediction = predict(model, data)
@@ -21,12 +21,14 @@ predictAndEvaluate <- function(model, data){
 ## carregando os dados
 train<-read.csv("student_performance_train.data")
 val<-read.csv("student_performance_val.data")
+test<-read.csv("student_performance_test_temp.data")
 
 ## inpecionando os dados
 summary(train)
 summary(val)
 nrow(train) #626
 nrow(val) #209
+nrow(test) #??
 
 ## intervalo das features
 #sapply(train, max)
@@ -34,63 +36,16 @@ nrow(val) #209
 
 train$approved = as.factor(train$approved)
 val$approved = as.factor(val$approved)
+test$approved = as.factor(test$approved)
 
 ## quantidade de exemplos de cada classe
 sum(train$approved==1)
 sum(train$approved==0)
 
-# DECISION TREE MODELS
+## decision tree
 library(rpart)
-#If we want to use Entropy + Gain of Information
-treeModel = rpart(formula=approved ~ ., 
-                  data=train, method="class",
-                  parms= list(split="information"))
 
-
-#If we want to use Gini to select features
-treeModel = rpart(formula=approved~ ., 
-                  data=train, method="class",
-                  parms= list(split="gini"))
-
-#Allowing it to grow
-treeModel = rpart(formula=approved~ ., 
-                  data=train, method="class",
-                  control=rpart.control(minsplit=10, cp=0.0001),
-                  parms= list(split="information"))
-
-summary(treeModel)
-
-#Save the complete DT into file
-post(treeModel, file = "tree2.ps",title = "Classification Tree for Income")
-
-
-
-
-######### POST PRUNE ########
-
-#Print the table with complexity parameters
-printcp(treeModel)
-
-#Prune the tree based on the complexity parameter that minimizes 
-#the error in cross-validation (xerror)
-minCP = treeModel$cptable[which.min(treeModel$cptable[,"xerror"]),"CP"]
-
-ptree = prune(treeModel, cp=minCP)
-summary(ptree)
-
-
-treeEval = predictAndEvaluate(treeModel, val)
-treeEval$CM
-treeEval$ACCNorm
-
-#prunned tree
-ptreeEval = predictAndEvaluate(ptree, val)
-ptreeEval$CM
-ptreeEval$ACCNorm
-
-
-########## ACC Vs Depth 
-# Let's see how the acc varies as we increase the tree's depth
+##ACC Vs Depth 
 accPerDepth = data.frame(depth=numeric(30), accTrain=numeric(30), accVal=numeric(30))
 for (maxDepth in 3:30){
   treeModel = rpart(formula=approved~ ., 
@@ -100,57 +55,49 @@ for (maxDepth in 3:30){
   
   trainResults = predictAndEvaluate(treeModel, train)
   valResults = predictAndEvaluate(treeModel, val)
+  testResults = predictAndEvaluate(treeModel, test)
   
-  accPerDepth[maxDepth,] = c(maxDepth, trainResults$ACCNorm, valResults$ACCNorm)
+  accPerDepth[maxDepth,] = c(maxDepth, trainResults$ACCNorm, valResults$ACCNorm, testResults$ACCNorm)
 }
 
-#Plot
-library("reshape2")
+## Plot
 library("ggplot2")
-
 accPerDepth <- melt(accPerDepth, id="depth")  # convert to long format
-
 ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line()
 
+treeModel = rpart(formula=approved ~ ., 
+                  data=train, method="class",
+                  control=rpart.control(minsplit=10, cp=0.0001, maxdepth=6),
+                  parms= list(split="information"))
 
+#summary(treeModel)
+#printcp(treeModel)
 
+##train
+trainResults = predictAndEvaluate(treeModel, train)
+trainResults$CM
+trainResults$ACCNorm
+#val
+valResults = predictAndEvaluate(treeModel, val)
+valResults$CM
+valResults$ACCNorm
+#test
+testResults = predictAndEvaluate(treeModel, test)
+testResults$CM
+testResults$ACCNorm
 
+##Plot DT
+plot(treeModel, uniform=TRUE)
+text(treeModel, use.n=TRUE, all=TRUE, cex=.8)
 
-############# RANDOM FOREST
-#install.packages('randomForest')
+## Random Forest
 library(randomForest)
-#help(randomForest)
-
-
-#Train RF model
-rfModel = randomForest(formula=approved~ ., data=train, ntree=400, type = "classification")
-
-
-#Plotting the error
-layout(matrix(c(1,2),nrow=1), width=c(4,1)) 
-par(mar=c(5,4,4,0)) #No margin on the right side
-plot(rfModel, log="y")
-par(mar=c(5,0,4,2)) #No margin on the left side
-plot(c(0,1),type="n", axes=F, xlab="", ylab="")
-legend("top", colnames(rfModel$err.rate),col=1:4,cex=0.8,fill=1:4)
-
-
-
-
-#Confusion Matrix
-rfPrediction = predict(rfModel, val) 
-rfCM = as.matrix(table(Actual = val$approved, Predicted = rfPrediction))
-rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
-rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
-rfACCNorm = mean(c(rfTPR, rfTNR))
-
-
-
 
 nTree = c(10,25, 50, 100, 500)
-accPerNTree = data.frame(ntree=numeric(5), accTrain=numeric(5), accVal=numeric(5))
+accPerNTree = data.frame(ntree=numeric(5), accTrain=numeric(5), accVal=numeric(5),accTest=numeric(5))
 for (i in 1:5){
   rfModel = randomForest(formula=approved~ ., data= train, ntree=nTree[i])
+
   rfPrediction = predict(rfModel, train) 
   rfCM = as.matrix(table(Actual = train$approved, Predicted = rfPrediction))
   rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
@@ -163,9 +110,25 @@ for (i in 1:5){
   rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
   rfACCNormVal = mean(c(rfTPR, rfTNR))
   
-  accPerNTree[i,] = c(nTree[i], rfACCNormTrain, rfACCNormVal)
+  rfPrediction = predict(rfModel, test) 
+  rfCM = as.matrix(table(Actual = test$approved, Predicted = rfPrediction))
+  rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
+  rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
+  rfACCNormTest = mean(c(rfTPR, rfTNR))
+  
+  accPerNTree[i,] = c(nTree[i], rfACCNormTrain, rfACCNormVal,rfACCNormTest)
 }
 
+#Confusion Matrix
+rfPrediction = predict(rfModel, val) 
+rfCM = as.matrix(table(Actual = val$approved, Predicted = rfPrediction))
+rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
+rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
+rfACCNorm = mean(c(rfTPR, rfTNR))
 
+library(ggplot2)
+type <- c(rep("accTrain",nTree),rep("accVal",nTree),rep("accTest",nTree))
+#graphic_data <- data.frame(Dataset = rep(nModels,2), Accuracy=c(all_ACCs,all_ACCsNorm),Group=type)
+ggplot(accPerNTree,aes(x=accTrain, y=nTree, group=Group,colour=Group))+geom_line()
 
 
