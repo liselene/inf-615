@@ -6,7 +6,7 @@ rm(list=ls())
 setwd("~/Projects/ComplexData/inf-615/trab3")
 #setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab3")
 
-predictAndEvaluate <- function(model, data){
+predictAndEvaluateTree <- function(model, data){
   prediction = predict(model, data)
   prediction = as.numeric(prediction[,2] >= 0.5)
   
@@ -18,17 +18,26 @@ predictAndEvaluate <- function(model, data){
   return(list(CM=CM, ACCNorm=ACCNorm))
 }
 
+predictAndEvaluateForest <- function(model, data){
+  prediction = predict(model, data) 
+  CM = as.matrix(table(Actual = data$approved, Predicted = prediction))
+  TPR = CM[2,2] / (CM[2,2] + CM[2,1])
+  TNR = CM[1,1] / (CM[1,1] + CM[1,2])
+  ACCNorm = mean(c(TPR, TNR))
+  return(list(CM=CM, ACCNorm=ACCNorm))
+}
+
 ## carregando os dados
 train<-read.csv("student_performance_train.data")
 val<-read.csv("student_performance_val.data")
-test<-read.csv("student_performance_test_temp.data")
+test<-read.csv("student_performance_test.data")
 
 ## inpecionando os dados
 summary(train)
 summary(val)
 nrow(train) #626
 nrow(val) #209
-nrow(test) #??
+nrow(test) #209
 
 ## intervalo das features
 #sapply(train, max)
@@ -46,21 +55,22 @@ sum(train$approved==0)
 library(rpart)
 
 ##ACC Vs Depth 
-accPerDepth = data.frame(depth=numeric(30), accTrain=numeric(30), accVal=numeric(30))
+accPerDepth = data.frame(depth=numeric(30), accTrain=numeric(30), accVal=numeric(30), accTest=numeric(30))
 for (maxDepth in 3:30){
   treeModel = rpart(formula=approved~ ., 
                     data=train, method="class",
                     control=rpart.control(minsplit=10, cp=0.0001, maxdepth=maxDepth),
                     parms= list(split="information"))
   
-  trainResults = predictAndEvaluate(treeModel, train)
-  valResults = predictAndEvaluate(treeModel, val)
-  testResults = predictAndEvaluate(treeModel, test)
+  trainResults = predictAndEvaluateTree(treeModel, train)
+  valResults = predictAndEvaluateTree(treeModel, val)
+  testResults = predictAndEvaluateTree(treeModel, test)
   
   accPerDepth[maxDepth,] = c(maxDepth, trainResults$ACCNorm, valResults$ACCNorm, testResults$ACCNorm)
 }
 
 ## Plot
+library("reshape2")
 library("ggplot2")
 accPerDepth <- melt(accPerDepth, id="depth")  # convert to long format
 ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line()
@@ -74,15 +84,15 @@ treeModel = rpart(formula=approved ~ .,
 #printcp(treeModel)
 
 ##train
-trainResults = predictAndEvaluate(treeModel, train)
+trainResults = predictAndEvaluateTree(treeModel, train)
 trainResults$CM
 trainResults$ACCNorm
 #val
-valResults = predictAndEvaluate(treeModel, val)
+valResults = predictAndEvaluateTree(treeModel, val)
 valResults$CM
 valResults$ACCNorm
 #test
-testResults = predictAndEvaluate(treeModel, test)
+testResults = predictAndEvaluateTree(treeModel, test)
 testResults$CM
 testResults$ACCNorm
 
@@ -97,38 +107,16 @@ nTree = c(10,25, 50, 100, 500)
 accPerNTree = data.frame(ntree=numeric(5), accTrain=numeric(5), accVal=numeric(5),accTest=numeric(5))
 for (i in 1:5){
   rfModel = randomForest(formula=approved~ ., data= train, ntree=nTree[i])
-
-  rfPrediction = predict(rfModel, train) 
-  rfCM = as.matrix(table(Actual = train$approved, Predicted = rfPrediction))
-  rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
-  rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
-  rfACCNormTrain = mean(c(rfTPR, rfTNR))
-  
-  rfPrediction = predict(rfModel, val) 
-  rfCM = as.matrix(table(Actual = val$approved, Predicted = rfPrediction))
-  rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
-  rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
-  rfACCNormVal = mean(c(rfTPR, rfTNR))
-  
-  rfPrediction = predict(rfModel, test) 
-  rfCM = as.matrix(table(Actual = test$approved, Predicted = rfPrediction))
-  rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
-  rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
-  rfACCNormTest = mean(c(rfTPR, rfTNR))
-  
-  accPerNTree[i,] = c(nTree[i], rfACCNormTrain, rfACCNormVal,rfACCNormTest)
+  rfACCNormTrain = predictAndEvaluateForest(rfModel, train)
+  rfACCNormVal = predictAndEvaluateForest(rfModel, val)
+  rfACCNormTest = predictAndEvaluateForest(rfModel, test)
+  accPerNTree[i,] = c(nTree[i], rfACCNormTrain$ACCNorm, rfACCNormVal$ACCNorm,rfACCNormTest$ACCNorm)
 }
 
-#Confusion Matrix
-rfPrediction = predict(rfModel, val) 
-rfCM = as.matrix(table(Actual = val$approved, Predicted = rfPrediction))
-rfTPR = rfCM[2,2] / (rfCM[2,2] + rfCM[2,1])
-rfTNR = rfCM[1,1] / (rfCM[1,1] + rfCM[1,2])
-rfACCNorm = mean(c(rfTPR, rfTNR))
-
 library(ggplot2)
-type <- c(rep("accTrain",nTree),rep("accVal",nTree),rep("accTest",nTree))
-#graphic_data <- data.frame(Dataset = rep(nModels,2), Accuracy=c(all_ACCs,all_ACCsNorm),Group=type)
-ggplot(accPerNTree,aes(x=accTrain, y=nTree, group=Group,colour=Group))+geom_line()
-
+type <- c(rep("accTrain",5),rep("accVal",5),rep("accTest",5))
+graphic_data <- data.frame(ntree=rep(accPerNTree$ntree,3),
+                           Dataset=c(accPerNTree$accTrain,accPerNTree$accVal,accPerNTree$accTest),
+                           Group=type)
+ggplot(data=graphic_data, aes(x=ntree, y=Dataset, colour=Group))+geom_line()
 
