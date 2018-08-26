@@ -51,12 +51,19 @@ test$approved = as.factor(test$approved)
 sum(train$approved==1)
 sum(train$approved==0)
 
+sum(val$approved==1)
+sum(val$approved==0)
+
+sum(test$approved==1)
+sum(test$approved==0)
+
 ## decision tree
 library(rpart)
 
 ##ACC Vs Depth 
-accPerDepth = data.frame(depth=numeric(30), accTrain=numeric(30), accVal=numeric(30), accTest=numeric(30))
+accPerDepth = data.frame(depth=numeric(28), accTrain=numeric(28), accVal=numeric(28), accTest=numeric(28))
 for (maxDepth in 3:30){
+  print(maxDepth)
   treeModel = rpart(formula=approved~ ., 
                     data=train, method="class",
                     control=rpart.control(minsplit=10, cp=0.0001, maxdepth=maxDepth),
@@ -66,18 +73,18 @@ for (maxDepth in 3:30){
   valResults = predictAndEvaluateTree(treeModel, val)
   testResults = predictAndEvaluateTree(treeModel, test)
   
-  accPerDepth[maxDepth,] = c(maxDepth, trainResults$ACCNorm, valResults$ACCNorm, testResults$ACCNorm)
+  accPerDepth[maxDepth-2,] = c(maxDepth, trainResults$ACCNorm, valResults$ACCNorm, testResults$ACCNorm)
 }
 
 ## Plot
 library("reshape2")
 library("ggplot2")
 accPerDepth <- melt(accPerDepth, id="depth")  # convert to long format
-ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line()
+ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line() + geom_point()
 
 treeModel = rpart(formula=approved ~ ., 
                   data=train, method="class",
-                  control=rpart.control(minsplit=10, cp=0.0001, maxdepth=6),
+                  control=rpart.control(minsplit=10, cp=0.0001, maxdepth=13),
                   parms= list(split="information"))
 
 #summary(treeModel)
@@ -113,10 +120,21 @@ for (i in 1:5){
   accPerNTree[i,] = c(nTree[i], rfACCNormTrain$ACCNorm, rfACCNormVal$ACCNorm,rfACCNormTest$ACCNorm)
 }
 
-library(ggplot2)
+#$ grafico da accuracia normalizada pelo numero de arvores
 type <- c(rep("accTrain",5),rep("accVal",5),rep("accTest",5))
 graphic_data <- data.frame(ntree=rep(accPerNTree$ntree,3),
                            Dataset=c(accPerNTree$accTrain,accPerNTree$accVal,accPerNTree$accTest),
                            Group=type)
 ggplot(data=graphic_data, aes(x=ntree, y=Dataset, colour=Group))+geom_line()
+
+
+#install.packages("ipred")
+library(ipred)
+model = ipredbagg(train$approved, X=train, nbagg=1)
+baggPrediction = predict(model, test) 
+baggCM = as.matrix(table(Actual = test$approved, Predicted = baggPrediction))
+baggTPR = baggCM[2,2] / (baggCM[2,2] + baggCM[2,1])
+baggTNR = baggCM[1,1] / (baggCM[1,1] + baggCM[1,2])
+baggACCNormVal = mean(c(baggTPR, baggTNR))
+
 
