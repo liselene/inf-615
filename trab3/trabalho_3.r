@@ -125,16 +125,4 @@ type <- c(rep("accTrain",5),rep("accVal",5),rep("accTest",5))
 graphic_data <- data.frame(ntree=rep(accPerNTree$ntree,3),
                            Dataset=c(accPerNTree$accTrain,accPerNTree$accVal,accPerNTree$accTest),
                            Group=type)
-ggplot(data=graphic_data, aes(x=ntree, y=Dataset, colour=Group))+geom_line()
-
-
-#install.packages("ipred")
-library(ipred)
-model = ipredbagg(train$approved, X=train, nbagg=1)
-baggPrediction = predict(model, test) 
-baggCM = as.matrix(table(Actual = test$approved, Predicted = baggPrediction))
-baggTPR = baggCM[2,2] / (baggCM[2,2] + baggCM[2,1])
-baggTNR = baggCM[1,1] / (baggCM[1,1] + baggCM[1,2])
-baggACCNormVal = mean(c(baggTPR, baggTNR))
-
-
+ggplot(data=graphic_data, aes(x=ntree, y=Dataset, colour=Group))+geom_line()+geom_point()
