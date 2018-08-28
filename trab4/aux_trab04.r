@@ -22,7 +22,7 @@ plotImage = function(imgArray){
 	flippedImg = im_numbers[,28:1]
 
 	image(1:28, 1:28, flippedImg, col=gray((0:255)/255), xlab="", ylab="")
-	title(as.numeric(imgArray[1]) - 1)
+	title(as.numeric(imgArray[1]))
 }
 
 #Ex de uso pegando o primeiro sample

@@ -4,11 +4,15 @@
 ########################################
 set.seed(42)
 
+print("Reading CSV...")
+
 data = read.csv("mnist_trainVal.csv", header=FALSE)
 
 # convert output to factor
 #data[,1] <- as.factor(data[,1])
 summary(data[,1])
+
+print("Applying PCA model...")
 
 # apply PCA or normalization here
 #remove "only zero columns"
@@ -22,6 +26,7 @@ cumsum(data.pca1$sdev^2 / sum(data.pca1$sdev^2)) # 95% -> 331
 # get PCA with 60% of variance for testing!
 data_60_var <- data.frame(V1 = data[,1], data.pca1$x[,1:64])
 
+print("Splitting data...")
 
 split_data <- function(data) {
   split_data_train <- list()
