@@ -1,13 +1,17 @@
 ########################################
-# Trabalho 2 - INF-615
+# Trabalho 4 - INF-615
 # Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
 
 #install.packages("neuralnet")
 library(neuralnet)
 
+#install.packages("e1071")
+library(e1071)
+
 #setwd("~/Documents/Curso - Complex Data/INF-0615/Tarefa1/inf-615/trab4")
-setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab4")
+#setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab4")
+setwd("~/Projects/ComplexData/inf-615/trab4")
 
 # create and process data
 source("data_processing.R")
@@ -108,3 +112,12 @@ nrow(trainData)
 NN0 = neuralnet(formula=f, data=trainData, hidden=c(3,3), linear.output=FALSE)
 
 }
+
+## svm
+trainData <- getBalancedData(split_data_train, 1)
+svm.model <- svm(f, data = trainData, cost = 100, gamma = 1)
+svm.pred  <- predict(svm.model, valData)
+CM = as.matrix(table(Actual = valData$V1, Predicted = svm.pred))
+#TPR = CM[2,2] / (CM[2,2] + CM[2,1])
+#TNR = CM[1,1] / (CM[1,1] + CM[1,2])
+#ACCNorm = mean(c(TPR, TNR))
