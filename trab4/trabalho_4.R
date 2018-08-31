@@ -9,8 +9,8 @@ library(neuralnet)
 #install.packages("e1071")
 library(e1071)
 
-setwd("~/Documents/Curso - Complex Data/INF-0615/Tarefa1/inf-615/trab4")
-#setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab4")
+#setwd("~/Documents/Curso - Complex Data/INF-0615/Tarefa1/inf-615/trab4")
+setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab4")
 #setwd("~/Projects/ComplexData/inf-615/trab4")
 
 # create and process data
@@ -58,18 +58,74 @@ f <- paste(feats[2:length(feats)],collapse=' + ')
 f <- paste('V1 ~',f)
 f <- as.formula(f)
 
-NN <- list(list(), list(), list(), list(), list())
+set.seed(42)
+
+NN <- list(list(), list(), list(), list(), list(), list(), list(), list(), list(), list())
 for (i in 1:10) {
+  set.seed(42)
   trainData <- getBalancedData(split_data_train, i)
-  print(paste0("Aplying model ", i, "..." , nrow(trainData)))
+  print(paste0("Aplying model ", i, "..."))
   for(j in 1:5) {
     print(paste0("Data size  ", j, " = " , nrow(trainData[[j]])))
     NN[[i]][[j]] <- neuralnet(formula=f, data=trainData[[j]], hidden=c(3,3), linear.output=FALSE, stepmax = 1e6)
   }
 }
 
+set.seed(42)
 
+predictions <- list(matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1),
+                    matrix(0L, nrow = nrow(valData), ncol = 1))
+for (i in 1:10) {
+  set.seed(42)
+  for (j in 1:5) {
+    nnCompute = compute(NN[[i]][[j]], valData[,2:ncol(valData)])
+    prediction = nnCompute$net.result
+    prediction[prediction < 0.5] = -1
+    prediction[prediction >= 0.5] = 1
+    predictions[[i]] <- predictions[[i]] + prediction
+  }
+}
 
+combinedPred <- data.frame(alg1=numeric(nrow(predictions[[1]])),
+                          alg2=numeric(nrow(predictions[[2]])),
+                          alg3=numeric(nrow(predictions[[3]])),
+                          alg4=numeric(nrow(predictions[[4]])),
+                          alg5=numeric(nrow(predictions[[5]])),
+                          alg6=numeric(nrow(predictions[[6]])),
+                          alg7=numeric(nrow(predictions[[7]])),
+                          alg8=numeric(nrow(predictions[[8]])),
+                          alg9=numeric(nrow(predictions[[9]])),
+                          alg0=numeric(nrow(predictions[[10]])))
+
+combinedPred[,"alg1"] <- predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg2"] <- - predictions[[1]] + predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg3"] <- - predictions[[1]] - predictions[[2]] + predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg4"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] + predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg5"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] + predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg6"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] + predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg7"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] + predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg8"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] + predictions[[8]] - predictions[[9]] - predictions[[10]]
+combinedPred[,"alg9"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] + predictions[[9]] - predictions[[10]]
+combinedPred[,"alg0"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] + predictions[[10]]
+
+finalPred = colnames(combinedPred)[apply(combinedPred, 1, which.max)]
+cm = as.matrix(table(Actual = labelVal, Predicted = finalPred))
+
+ACCs <- c()
+for (i in 1:10) {
+  ACCs[i] = cm[i,i] / sum(cm[1:10,i])
+}
+
+ACC_final <- sum(ACCs)/10
+ACC_final
 
 .f2 <- function() {
 ## svm
