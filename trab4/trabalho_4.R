@@ -17,6 +17,9 @@ setwd("~/Documents/UNICAMP/Curso - Mineracao/INF-0615/inf-615/trab4")
 source("data_processing.R")
 set.seed(42)
 
+## svm routines
+source("trablho_4_svn.R")
+
 # return a list with 5 balanced datasets
 getBalancedData <- function(split_data, index) {
   posData <- list()
@@ -49,6 +52,26 @@ getBalancedData <- function(split_data, index) {
     trainData[[i]] <- rbind(posData[[i]], negData[[i]])
   }
   
+  return(trainData)
+}
+
+getBalancedDataSingle <- function(split_data, index) {
+  posData <- data.frame()
+  negData <- data.frame()
+  set.seed(42)
+  for (i in 1:10) {
+    if (i == index) {
+      posData <- split_data[[i]]
+    }
+    else {
+      # get only 10% of data
+      idx <- sample(1:nrow(split_data[[i]]), 0.11*nrow(split_data[[i]]))
+      negData <- rbind(negData, split_data[[i]][idx,])
+    }
+  }
+  posData$V1 = 1
+  negData$V1 = -1
+  trainData <- rbind(posData, negData)
   return(trainData)
 }
 
@@ -127,13 +150,3 @@ for (i in 1:10) {
 ACC_final <- sum(ACCs)/10
 ACC_final
 
-.f2 <- function() {
-## svm
-trainData <- getBalancedData(split_data_train, 1)
-svm.model <- svm(f, data = trainData, cost = 100, gamma = 1)
-svm.pred  <- predict(svm.model, valData)
-CM = as.matrix(table(Actual = valData$V1, Predicted = svm.pred))
-}
-#TPR = CM[2,2] / (CM[2,2] + CM[2,1])
-#TNR = CM[1,1] / (CM[1,1] + CM[1,2])
-#ACCNorm = mean(c(TPR, TNR))
