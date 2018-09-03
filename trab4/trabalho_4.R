@@ -2,7 +2,6 @@
 # Trabalho 4 - INF-615 
 # Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
-
 #install.packages("neuralnet")
 library(neuralnet)
 

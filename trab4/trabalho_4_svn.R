@@ -1,9 +1,7 @@
 ########################################
-# Trabalho 4 - INF-615 SVM routines
+# Trabalho 4 - INF-615 SVM
 # Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
-rm(list = ls())
-
 #install.packages("e1071")
 library(e1071)
 
@@ -23,8 +21,7 @@ getBalancedData <- function(split_data, index) {
     }
     else {
       # get only 10% of data
-      idx <-
-        sample(1:nrow(split_data[[i]]), 0.11 * nrow(split_data[[i]]))
+      idx <-sample(1:nrow(split_data[[i]]), 0.11 * nrow(split_data[[i]]))
       negData <- rbind(negData, split_data[[i]][idx, ])
     }
   }
@@ -46,7 +43,6 @@ trainData <- list()
 
 ## svm
 for (idx in c(1:10)) {
-  #idx<-1
   print(paste("Modelo: ", idx))
   trainData[[idx]] <- getBalancedData(split_data_train, index = idx)
   
@@ -57,7 +53,7 @@ for (idx in c(1:10)) {
   
   svm_modelRBF[[idx]] <-svm(V1 ~ .,data = trainData[[idx]],cost = .cost[idx],gamma = .gamma)
   
-  svm_modelLin[[idx]] <-svm(V1 ~ ., kernel = "linear", data = trainData[[idx]])#kernel linear
+  #svm_modelLin[[idx]] <-svm(V1 ~ ., kernel = "linear", data = trainData[[idx]])#kernel linear
 }
 save.image()
 
@@ -99,18 +95,72 @@ getAccuracy <- function(svm_model, label) {
   #print(ACCNorm_val)
   #print(max(ACCNorm_val))
   ACCNorm_val <- c(ACCNorm_val, mean(ACCNorm_val))
+
 }
 
-getAccuracy(svm_modelLin, "Kernel Linear")
-getAccuracy(svm_modelRBF, "Kernel RBF")
+getAcc <- function(svm_model,data){
+  predictions <- list(matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1),
+                      matrix(0L, nrow = nrow(data), ncol = 1))
+  
+  for (idx in 1:10) {
+    set.seed(42)
+    svm.pred  <- predict(svm_model[[idx]], data[, -1])
+    svm.pred[svm.pred < 0] <- -1
+    svm.pred[svm.pred >= 0] <- 1
+    predictions[[idx]] <- predictions[[idx]] + svm.pred
+  }
+  
+  combinedPred <- data.frame(alg1=numeric(nrow(predictions[[1]])),
+                            alg2=numeric(nrow(predictions[[2]])),
+                            alg3=numeric(nrow(predictions[[3]])),
+                            alg4=numeric(nrow(predictions[[4]])),
+                            alg5=numeric(nrow(predictions[[5]])),
+                            alg6=numeric(nrow(predictions[[6]])),
+                            alg7=numeric(nrow(predictions[[7]])),
+                            alg8=numeric(nrow(predictions[[8]])),
+                            alg9=numeric(nrow(predictions[[9]])),
+                            alg0=numeric(nrow(predictions[[10]])))
+  
+  combinedPred[,"alg1"] <- predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg2"] <- - predictions[[1]] + predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg3"] <- - predictions[[1]] - predictions[[2]] + predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg4"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] + predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg5"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] + predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg6"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] + predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg7"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] + predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg8"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] + predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg9"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] + predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg0"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] + predictions[[10]]
+  
+  finalPred = colnames(combinedPred)[apply(combinedPred, 1, which.max)]
+  cm = as.matrix(table(Actual = data$V1, Predicted = finalPred))
+  print(cm)
+  ACCs <- c()
+  for (i in 1:10) {
+    ACCs[i] = cm[i,i] / sum(cm[1:10,i])
+  }
+  
+  ACC_final <- sum(ACCs)/10
+  ACC_final
 
-#plot accuracy bar graphic  
+}
+
+#getAcc(svm_modelLin,valData)#, "Kernel Linear"
+getAcc(svm_modelRBF,valData)#, "Kernel RBF"
+
 library(ggplot2)
-ACCNorm <-data.frame(number = factor(c(1:9, 0, "media", 1:9, 0, "media")),
-                     ACC = factor(round(c(ACCNorm_train, ACCNorm_val), 2)),
-                     type = factor(c(rep("treino", 11), rep("validação", 11))))
-    
-ggplot(data = ACCNorm, aes(x = number,y = ACC,fill = type ,adj = 1)) +
-    geom_bar(stat = "identity", position = position_dodge()) +
-    ggtitle(label, subtitle = NULL)
+ACCNorm <-  data.frame(number = factor(c(1:9, 0, "final", 1:9, 0, "final")),
+             ACC = factor(round(c(ACCNorm_train, ACCNorm_val), 2)),
+             type = factor(c(rep("treino", 11), rep("validação", 11))))
 
+ggplot(data = ACCNorm, aes(x = number, y = ACC, fill = type , adj = 1)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  ggtitle(label, subtitle = NULL)
