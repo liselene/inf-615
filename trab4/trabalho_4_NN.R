@@ -82,7 +82,7 @@ getPredictions <- function(NN, predData) {
   return(predictions)
 }
 
-getACCs <- function(predictions, label) {
+evaluatePredictions <- function(predictions, label) {
   combinedPred <- data.frame(alg1=numeric(nrow(predictions[[1]])),
                              alg2=numeric(nrow(predictions[[2]])),
                              alg3=numeric(nrow(predictions[[3]])),
@@ -112,7 +112,7 @@ getACCs <- function(predictions, label) {
   for (i in 1:10) {
     ACCs[i] = cm[i,i] / sum(cm[1:10,i])
   }
-  return(ACCs)
+  return(list(cm, ACCs))
 }
 
 # define the formula
@@ -144,12 +144,26 @@ predictions_val <- getPredictions(NN, valData)
 
 print("Get ACCs...")
 
-ACCs_train <- getACCs(predictions_train, labelTrain)
-ACCs_val <- getACCs(predictions_val, labelVal)
+eval_train <- evaluatePredictions(predictions_train, labelTrain)
+eval_val <- evaluatePredictions(predictions_val, labelVal)
 
-ACC_final_train <- sum(ACCs_train)/10
-ACC_final_val <- sum(ACCs_val)/10
+cm_train <- eval_train[[1]]
+cm_val <- eval_val[[1]]
+
+ACC_final_train <- sum(eval_train[[2]])/10
+ACC_final_val <- sum(eval_val[[2]])/10
 
 print(paste0("ACC train = ", ACC_final_train))
 print(paste0("ACC val = ", ACC_final_val))
+
+########################################################################################
+# OUTPUTS
+########################################################################################
+
+cm_train        # Confusion matrix for train data
+cm_val          # Confusion matrix for val data
+ACCs_train      # Array with ACC of each number in train data
+ACCs_val        # Array with ACC of each number in val data
+ACC_final_train # Normalized ACC of all numbers for train data
+ACC_final_val   # Normalized ACC of all numbers for val data
 
