@@ -8,18 +8,18 @@ source("data_processing.R")
 
 #reading test data
 print("Reading CSV...")
-data_test = read.csv("mnist_trainVal.csv", header=FALSE)
+data_test = read.csv("mnist_test.csv", header=FALSE)
 print("Applying PCA model...")
 
 # apply PCA or normalization here
 #remove "only zero columns"
 data_filtered <- data_test[,c(TRUE, colSums(data[,2:ncol(data)]) != 0)]
 # apply PCA
-data_test <- predict(data.pca1, data_filtered)
+data_test_pca <- predict(data.pca1, data_filtered)
 
 set.seed(42)
 # get PCA with 95% of variance
-data_test <- data.frame(V1 = data[,1], data.pca1$x[,1:332])
+dataTest <- data.frame(V1 = data_test[,1], data_test_pca[,1:331])
 
 # return a list with 5 balanced datasets
 getBalancedData <- function(split_data, index) {
@@ -56,9 +56,66 @@ getBalancedData <- function(split_data, index) {
   return(trainData)
 }
 
+getPredictions <- function(NN, predData) {
+  predictions <- list(matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1),
+                      matrix(0L, nrow = nrow(predData), ncol = 1))
+  for (i in 1:10) {
+    set.seed(42)
+    for (j in 1:5) {
+      nnCompute = compute(NN[[i]][[j]], predData[,2:ncol(predData)])
+      prediction = nnCompute$net.result
+      prediction[prediction < 0.5] = -1
+      prediction[prediction >= 0.5] = 1
+      predictions[[i]] <- predictions[[i]] + prediction
+    }
+  }
+  return(predictions)
+}
+
+evaluatePredictions <- function(predictions, label) {
+  combinedPred <- data.frame(alg1=numeric(nrow(predictions[[1]])),
+                             alg2=numeric(nrow(predictions[[2]])),
+                             alg3=numeric(nrow(predictions[[3]])),
+                             alg4=numeric(nrow(predictions[[4]])),
+                             alg5=numeric(nrow(predictions[[5]])),
+                             alg6=numeric(nrow(predictions[[6]])),
+                             alg7=numeric(nrow(predictions[[7]])),
+                             alg8=numeric(nrow(predictions[[8]])),
+                             alg9=numeric(nrow(predictions[[9]])),
+                             alg0=numeric(nrow(predictions[[10]])))
+  combinedPred[,"alg1"] <- predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg2"] <- - predictions[[1]] + predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg3"] <- - predictions[[1]] - predictions[[2]] + predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg4"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] + predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg5"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] + predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg6"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] + predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg7"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] + predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg8"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] + predictions[[8]] - predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg9"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] + predictions[[9]] - predictions[[10]]
+  combinedPred[,"alg0"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] + predictions[[10]]
+  
+  
+  finalPred = colnames(combinedPred)[apply(combinedPred, 1, which.max)]
+  cm = as.matrix(table(Actual = label, Predicted = finalPred))
+  
+  ACCs <- c()
+  for (i in 1:10) {
+    ACCs[i] = cm[i,i] / sum(cm[1:10,i])
+  }
+  return(list(cm, ACCs))
+}
+
 # train the model
 # define the formula
-feats <- names(valData)
+feats <- names(dataTest)
 f <- paste(feats[2:length(feats)],collapse=' + ')
 f <- paste('V1 ~',f)
 f <- as.formula(f)
@@ -77,12 +134,14 @@ for (i in 1:10) {
 }
 
 # accuracy measure
-labelTest = data_test[,"V1"]
+labelTest = dataTest[,"V1"]
 
-predictions_test <- getPredictions(NN, data_test)
+predictions_test <- getPredictions(NN, dataTest)
 eval_test <- evaluatePredictions(predictions_test, labelTest)
 
 cm_test <- eval_test[[1]]
 ACCs_test <- eval_test[[2]]
 ACC_final_test <- sum(eval_test[[2]])/10
+
+print(paste0("ACC_test = ", ACC_final_test))
 

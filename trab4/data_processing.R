@@ -25,7 +25,7 @@ cumsum(data.pca1$sdev^2 / sum(data.pca1$sdev^2)) # 95% -> 331
 set.seed(42)
 
 # get PCA with 95% of variance
-data_95_var <- data.frame(V1 = data[,1], data.pca1$x[,1:332])
+data_95_var <- data.frame(V1 = data[,1], data.pca1$x[,1:331])
 # get PCA with 95% of variance
 data_90_var <- data.frame(V1 = data[,1], data.pca1$x[,1:236])
 # get PCA with 60% of variance for testing!
@@ -94,7 +94,7 @@ split_data <- function(data) {
 }
 
 # split data into train and val
-splitted_data <- split_data(data_60_var)
+splitted_data <- split_data(data_95_var)
 valData <- splitted_data[[1]]
 split_data_train <- splitted_data[[2]]
 split_data_val <- splitted_data[[3]]
