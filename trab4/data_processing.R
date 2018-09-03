@@ -2,6 +2,7 @@
 # Trabalho 4 - INF-615 - Data treatment
 # Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
+rm(list = ls())
 set.seed(42)
 
 print("Reading CSV...")
@@ -93,7 +94,7 @@ split_data <- function(data) {
 }
 
 # split data into train and val
-splitted_data <- split_data(data_90_var)
+splitted_data <- split_data(data_60_var)
 valData <- splitted_data[[1]]
 split_data_train <- splitted_data[[2]]
 split_data_val <- splitted_data[[3]]
@@ -101,7 +102,4 @@ split_data_val <- splitted_data[[3]]
 labelVal = valData[,"V1"]
 
 set.seed(42)
-
-
-
 
