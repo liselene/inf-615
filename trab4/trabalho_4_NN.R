@@ -130,7 +130,7 @@ for (i in 1:10) {
   print(paste0("Aplying model ", i, "..."))
   for(j in 1:5) {
     print(paste0("Data size  ", j, " = " , nrow(trainData[[j]])))
-    NN[[i]][[j]] <- neuralnet(formula=f, data=trainData[[j]], hidden=c(3,3), linear.output=FALSE, stepmax = 1e6)
+    NN[[i]][[j]] <- neuralnet(formula=f, data=trainData[[j]], hidden=c(10,10), linear.output=FALSE, stepmax = 1e6)
   }
 }
 
@@ -139,6 +139,7 @@ set.seed(42)
 print("Get predictions...")
 
 trainData <- do.call("rbind", split_data_train)
+labelTrain = trainData[,"V1"]
 predictions_train <- getPredictions(NN, trainData)
 predictions_val <- getPredictions(NN, valData)
 
@@ -149,6 +150,9 @@ eval_val <- evaluatePredictions(predictions_val, labelVal)
 
 cm_train <- eval_train[[1]]
 cm_val <- eval_val[[1]]
+
+ACCs_train <- eval_train[[2]]
+ACCs_val <- eval_val[[2]]
 
 ACC_final_train <- sum(eval_train[[2]])/10
 ACC_final_val <- sum(eval_val[[2]])/10

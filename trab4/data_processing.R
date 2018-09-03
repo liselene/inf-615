@@ -99,7 +99,6 @@ split_data_train <- splitted_data[[2]]
 split_data_val <- splitted_data[[3]]
 
 labelVal = valData[,"V1"]
-labelTrain = trainData[,"V1"]
 
 set.seed(42)
 
