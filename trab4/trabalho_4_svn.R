@@ -2,7 +2,6 @@
 # Trabalho 4 - INF-615 SVM routines
 # Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
-rm(list = ls())
 
 #install.packages("e1071")
 library(e1071)
