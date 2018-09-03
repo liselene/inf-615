@@ -25,6 +25,8 @@ set.seed(42)
 
 # get PCA with 95% of variance
 data_95_var <- data.frame(V1 = data[,1], data.pca1$x[,1:331])
+# get PCA with 95% of variance
+data_90_var <- data.frame(V1 = data[,1], data.pca1$x[,1:236])
 # get PCA with 60% of variance for testing!
 data_60_var <- data.frame(V1 = data[,1], data.pca1$x[,1:64])
 
@@ -90,14 +92,31 @@ split_data <- function(data) {
 }
 
 # split data into train and val
-splitted_data <- split_data(data_95_var)
+splitted_data <- split_data(data_90_var)
 valData <- splitted_data[[1]]
 split_data_train <- splitted_data[[2]]
 split_data_val <- splitted_data[[3]]
 
 labelVal = valData[,"V1"]
 
+set.seed(42)
 
+if(FALSE){
+  print("Reading test CSV...")
+  data = read.csv("mnist_test.csv", header=FALSE)
+  print("Applying PCA model...")
+
+	# apply PCA or normalization here
+	#remove "only zero columns"
+	data_filtered <- data[,c(TRUE, colSums(data[,2:ncol(data)]) != 0)]
+	# apply PCA
+	data.pca1 <- prcomp(data_filtered[,2:ncol(data_filtered)], scale.=TRUE)
+
+	set.seed(42)
+
+	# get PCA with 90% of variance
+	data_test <- data.frame(V1 = data[,1], data.pca1$x[,1:236])
+}
 
 
 
