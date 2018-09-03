@@ -16,7 +16,7 @@ source("data_processing.R")
 set.seed(42)
 
 ## svm routines
-source("trabalho_4_svn.R")
+source("trabalho_4_svm.R")
 
 ## NN routines
 source("trabalho_4_NN.R")
