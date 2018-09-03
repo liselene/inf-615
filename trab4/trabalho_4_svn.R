@@ -35,8 +35,9 @@ getBalancedData <- function(split_data, index) {
 
 set.seed(42)
 ACCNorm_val<-c()
-svm_model<-list()
-svm_tune<-list()
+svm_modelRBF<-list()
+svm_modelLin<-list()
+#svm_tune<-list()
 trainData<-list()
 
 #parametros do do tune
