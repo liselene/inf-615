@@ -38,8 +38,8 @@ svm_modelLin <- list()
 trainData <- list()
 
 #parametros do do tune
-.cost <- c(1, 1, 1, 10, 1, 1, 10, 1, 1, 1)
-.gamma <- 0.5
+.cost <- 1 #c(1, 1, 1, 10, 1, 1, 10, 1, 1, 1)
+.gamma <- 0.003021148
 
 ## svm
 for (idx in c(1:10)) {
@@ -51,54 +51,11 @@ for (idx in c(1:10)) {
   #                        tunecontrol = tune.control(sampling = "fix"))
   
   
-  svm_modelRBF[[idx]] <-svm(V1 ~ .,data = trainData[[idx]],cost = .cost[idx],gamma = .gamma)
+  svm_modelRBF[[idx]] <-svm(V1 ~ .,data = trainData[[idx]],cost = .cost,gamma = .gamma) #[idx]
   
   #svm_modelLin[[idx]] <-svm(V1 ~ ., kernel = "linear", data = trainData[[idx]])#kernel linear
 }
-save.image()
-
-getAccuracy <- function(svm_model, label) {
-  set.seed(42)
-  #acuracia de treino
-  ACCNorm_train <- c()
-  for (idx in c(1:10)) {
-    svm.pred  <- predict(svm_model[[idx]], trainData[[idx]][, -1])
-    svm.pred[svm.pred < 0] <- -1
-    svm.pred[svm.pred >= 0] <- 1
-    CM = table(pred = svm.pred, true = trainData[[idx]][, 1])
-    TPR = CM[2, 2] / (CM[2, 2] + CM[2, 1])
-    TNR = CM[1, 1] / (CM[1, 1] + CM[1, 2])
-    ACCNorm_train <- c(ACCNorm_train, mean(c(TPR, TNR)))
-  }
-  #print(ACCNorm_train)
-  #print(max(ACCNorm_train))
-  ACCNorm_train <- c(ACCNorm_train, mean(ACCNorm_train))
-  
-  #acuracia de validação
-  ACCNorm_val <- c()
-  for (idx in c(1:10)) {
-    svm.pred  <- predict(svm_model[[idx]], valData[, -1])
-    svm.pred[svm.pred < 0] <- -1
-    svm.pred[svm.pred >= 0] <- 1
-    real <- valData$V1
-    if (idx == 10) {
-      #numero 0 e o modelo 10
-      idx <- 0
-    }
-    real[real != idx] <- -1
-    real[real == idx] <- 1
-    CM <- table(pred = svm.pred, true = real)
-    TPR = CM[2, 2] / (CM[2, 2] + CM[2, 1])
-    TNR = CM[1, 1] / (CM[1, 1] + CM[1, 2])
-    ACCNorm_val <- c(ACCNorm_val, mean(c(TPR, TNR)))
-  }
-  #print(ACCNorm_val)
-  #print(max(ACCNorm_val))
-  ACCNorm_val <- c(ACCNorm_val, mean(ACCNorm_val))
-
-}
-
-getAcc <- function(svm_model,data){
+getPredictions <- function(svm_model, data) {
   predictions <- list(matrix(0L, nrow = nrow(data), ncol = 1),
                       matrix(0L, nrow = nrow(data), ncol = 1),
                       matrix(0L, nrow = nrow(data), ncol = 1),
@@ -117,18 +74,20 @@ getAcc <- function(svm_model,data){
     svm.pred[svm.pred >= 0] <- 1
     predictions[[idx]] <- predictions[[idx]] + svm.pred
   }
-  
+  return(predictions)
+}
+
+evaluatePredictions <- function(predictions, label) {
   combinedPred <- data.frame(alg1=numeric(nrow(predictions[[1]])),
-                            alg2=numeric(nrow(predictions[[2]])),
-                            alg3=numeric(nrow(predictions[[3]])),
-                            alg4=numeric(nrow(predictions[[4]])),
-                            alg5=numeric(nrow(predictions[[5]])),
-                            alg6=numeric(nrow(predictions[[6]])),
-                            alg7=numeric(nrow(predictions[[7]])),
-                            alg8=numeric(nrow(predictions[[8]])),
-                            alg9=numeric(nrow(predictions[[9]])),
-                            alg0=numeric(nrow(predictions[[10]])))
-  
+                             alg2=numeric(nrow(predictions[[2]])),
+                             alg3=numeric(nrow(predictions[[3]])),
+                             alg4=numeric(nrow(predictions[[4]])),
+                             alg5=numeric(nrow(predictions[[5]])),
+                             alg6=numeric(nrow(predictions[[6]])),
+                             alg7=numeric(nrow(predictions[[7]])),
+                             alg8=numeric(nrow(predictions[[8]])),
+                             alg9=numeric(nrow(predictions[[9]])),
+                             alg0=numeric(nrow(predictions[[10]])))
   combinedPred[,"alg1"] <- predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
   combinedPred[,"alg2"] <- - predictions[[1]] + predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
   combinedPred[,"alg3"] <- - predictions[[1]] - predictions[[2]] + predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] - predictions[[10]]
@@ -140,27 +99,79 @@ getAcc <- function(svm_model,data){
   combinedPred[,"alg9"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] + predictions[[9]] - predictions[[10]]
   combinedPred[,"alg0"] <- - predictions[[1]] - predictions[[2]] - predictions[[3]] - predictions[[4]] - predictions[[5]] - predictions[[6]] - predictions[[7]] - predictions[[8]] - predictions[[9]] + predictions[[10]]
   
+  
   finalPred = colnames(combinedPred)[apply(combinedPred, 1, which.max)]
-  cm = as.matrix(table(Actual = data$V1, Predicted = finalPred))
-  print(cm)
+  cm = as.matrix(table(Actual = label, Predicted = finalPred))
+  
   ACCs <- c()
   for (i in 1:10) {
     ACCs[i] = cm[i,i] / sum(cm[1:10,i])
   }
-  
-  ACC_final <- sum(ACCs)/10
-  ACC_final
-
+  return(list(cm, ACCs))
 }
 
-#getAcc(svm_modelLin,valData)#, "Kernel Linear"
-getAcc(svm_modelRBF,valData)#, "Kernel RBF"
+##treino
+trainData <- do.call("rbind", split_data_train)
+# SVM Linear
+predictions_train<-getPredictions(svm_modelLin,trainData)
+eval_train <- evaluatePredictions(predictions_train, trainData$V1)
+ACCs_lin_train<-eval_train[[2]]
+ACC_final_lin_train<-mean(ACCs_lin_train)
+cm_lin_train<-eval_train[[1]]
 
+# SVM RBF
+predictions_train<-getPredictions(svm_modelRBF,trainData)
+eval_train <- evaluatePredictions(predictions_train, trainData$V1)
+ACCs_rbf_train<-eval_train[[2]]
+ACC_final_rbf_train<-mean(ACCs_lin_train)
+cm_rbf_train<-eval_train[[1]]
+
+## validacao
+# SVM Linear
+predictions_val<-getPredictions(svm_modelLin,valData)
+eval_val <- evaluatePredictions(predictions_val, trainData$V1)
+ACCs_lin_val<-eval_val[[2]]
+ACC_final_lin_val<-mean(ACCs_lin_val)
+cm_lin_val<-eval_val[[1]]
+
+# SVM RBF
+predictions_val<-getPredictions(svm_modelRBF,valData)
+eval_val <- evaluatePredictions(predictions_val, valData$V1)
+ACCs_rbf_val<-eval_val[[2]]
+ACC_final_rbf_val<-mean(ACCs_lin_val)
+cm_rbf_val<-eval_val[[1]]
+
+print(paste0("ACC train Linear = ", ACC_final_lin_train))
+print(paste0("ACC val Linear= ", ACC_final_lin_val))
+print(paste0("ACC train RBF = ", ACC_final_rbf_train))
+print(paste0("ACC val RBF = ", ACC_final_rbf_val))
+
+accplot<-function(ACCs_train,ACC_final_train, ACCs_val,ACC_final_val){
 library(ggplot2)
 ACCNorm <-  data.frame(number = factor(c(1:9, 0, "final", 1:9, 0, "final")),
-             ACC = factor(round(c(ACCNorm_train, ACCNorm_val), 2)),
+             ACC = factor(round(c(ACCs_train,ACC_final_train, ACCs_val,ACC_final_val), 2)),
              type = factor(c(rep("treino", 11), rep("validação", 11))))
 
 ggplot(data = ACCNorm, aes(x = number, y = ACC, fill = type , adj = 1)) +
   geom_bar(stat = "identity", position = position_dodge()) +
   ggtitle(label, subtitle = NULL)
+}
+
+accplot(ACCs_lin_train,ACC_final_lin_train, ACCs_lin_val,ACC_final_lin_val)
+accplot(ACCs_rbf_train,ACC_final_rbf_train, ACCs_rbf_val,ACC_final_rbf_val)
+########################################################################################
+# OUTPUTS
+########################################################################################
+
+cm_rbf_train        # Confusion matrix for train data(kernel rbf)
+cm_linear_train        # Confusion matrix for train data(kernel linear)
+cm_rbf_val          # Confusion matrix for val data(kernel rbf)
+cm_linear_val          # Confusion matrix for val data(kernel linear)
+ACCs_rbf_train      # Array with ACC of each number in train data(kernel rbf)
+ACCs_linear_train      # Array with ACC of each number in train data(kernel linear)
+ACCs_rbf_val        # Array with ACC of each number in val data(kernel rbf)
+ACCs_linear_val        # Array with ACC of each number in val data(kernel linear)
+ACC_final_rbf_train # Normalized ACC of all numbers for train data(kernel rbf)
+ACC_final_linear_train # Normalized ACC of all numbers for train data(kernel linear)
+ACC_final_rbf_val   # Normalized ACC of all numbers for val data (kernel rbf)
+ACC_final_linear_val   # Normalized ACC of all numbers for val data(kernel linear)

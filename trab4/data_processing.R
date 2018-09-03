@@ -89,6 +89,7 @@ split_data <- function(data) {
   
   # join all validation data together
   valData = do.call("rbind", split_data_val)
+  trainData = do.call("rbind", split_data_train)
   return(list(valData, split_data_train, split_data_val))
 }
 
@@ -99,3 +100,7 @@ split_data_train <- splitted_data[[2]]
 split_data_val <- splitted_data[[3]]
 
 labelVal = valData[,"V1"]
+labelTrain = trainData[,"V1"]
+
+set.seed(42)
+
