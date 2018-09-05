@@ -2,7 +2,6 @@
 # Trabalho 4 - INF-615 - Data treatment
 # Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
-rm(list = ls())
 set.seed(42)
 
 print("Reading CSV...")
@@ -11,7 +10,7 @@ data = read.csv("mnist_trainVal.csv", header=FALSE)
 
 # convert output to factor
 #data[,1] <- as.factor(data[,1])
-summary(data[,1])
+#summary(data[,1])
 
 print("Applying PCA model...")
 
@@ -26,8 +25,8 @@ set.seed(42)
 
 # get PCA with 95% of variance
 data_95_var <- data.frame(V1 = data[,1], data.pca1$x[,1:331])
-# get PCA with 95% of variance
-data_90_var <- data.frame(V1 = data[,1], data.pca1$x[,1:236])
+# get PCA with 80% of variance
+data_80_var <- data.frame(V1 = data[,1], data.pca1$x[,1:149])
 # get PCA with 60% of variance for testing!
 data_60_var <- data.frame(V1 = data[,1], data.pca1$x[,1:64])
 

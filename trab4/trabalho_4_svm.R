@@ -2,15 +2,6 @@
 # Trabalho 4 - INF-615 SVM
 # Nome(s): Liselene Borges e Marcos Scarpim
 ########################################
-#install.packages("e1071")
-library(e1071)
-
-setwd("~/Projects/ComplexData/inf-615/trab4")
-
-# create and process data
-source("data_processing.R")
-set.seed(42)
-
 getBalancedData <- function(split_data, index) {
   posData <- data.frame()
   negData <- data.frame()
@@ -34,12 +25,12 @@ getBalancedData <- function(split_data, index) {
 set.seed(42)
 svm_modelRBF <- list()
 svm_modelLin <- list()
-#svm_tune<-list()
+svm_tune<-list()
 trainData <- list()
 
 #parametros do do tune
-.cost <- 1 #c(1, 1, 1, 10, 1, 1, 10, 1, 1, 1)
-.gamma <- 0.003021148
+.cost <- 1
+.gamma <- c(0.0625,0.0625,0.00390625,0.00390625,0.00390625,0.00390625,0.00390625,0.0625,0.0625,0.00390625)
 
 ## svm
 for (idx in c(1:10)) {
@@ -47,14 +38,19 @@ for (idx in c(1:10)) {
   trainData[[idx]] <- getBalancedData(split_data_train, index = idx)
   
   #svm_tune[[idx]] <- tune(svm, V1 ~ ., data = trainData[[idx]], kernel="radial",
-  #                        ranges=list(cost=10^(-1:2), gamma=c(.5,1,2)),
+  #                        ranges=list(gamma = 2^c(-8,-4,0,4), cost = 2^c(-8,-4,-2,0)),
   #                        tunecontrol = tune.control(sampling = "fix"))
   
+  svm_modelRBF[[idx]] <-svm(V1 ~ .,data = trainData[[idx]],iter.max = 150,
+                            cost = .cost,gamma = .gamma[idx])
+
+  #svm_tune[[idx]] <- tune(svm, V1~., data = trainData[[idx]], kernel = "linear",
+  #                 ranges = list(cost = c(0.001, 0.01, 0.1, 1))) #, 5, 10, 100
   
-  svm_modelRBF[[idx]] <-svm(V1 ~ .,data = trainData[[idx]],cost = .cost,gamma = .gamma) #[idx]
-  
-  #svm_modelLin[[idx]] <-svm(V1 ~ ., kernel = "linear", data = trainData[[idx]])#kernel linear
+  svm_modelLin[[idx]] <-svm(V1 ~ ., kernel = "linear", data = trainData[[idx]],
+                            cost=0.001, scale = FALSE)#kernel linear
 }
+
 getPredictions <- function(svm_model, data) {
   predictions <- list(matrix(0L, nrow = nrow(data), ncol = 1),
                       matrix(0L, nrow = nrow(data), ncol = 1),
@@ -129,7 +125,7 @@ cm_rbf_train<-eval_train[[1]]
 ## validacao
 # SVM Linear
 predictions_val<-getPredictions(svm_modelLin,valData)
-eval_val <- evaluatePredictions(predictions_val, trainData$V1)
+eval_val <- evaluatePredictions(predictions_val, valData$V1)
 ACCs_lin_val<-eval_val[[2]]
 ACC_final_lin_val<-mean(ACCs_lin_val)
 cm_lin_val<-eval_val[[1]]
@@ -138,7 +134,7 @@ cm_lin_val<-eval_val[[1]]
 predictions_val<-getPredictions(svm_modelRBF,valData)
 eval_val <- evaluatePredictions(predictions_val, valData$V1)
 ACCs_rbf_val<-eval_val[[2]]
-ACC_final_rbf_val<-mean(ACCs_lin_val)
+ACC_final_rbf_val<-mean(ACCs_rbf_val)
 cm_rbf_val<-eval_val[[1]]
 
 print(paste0("ACC train Linear = ", ACC_final_lin_train))
@@ -146,32 +142,20 @@ print(paste0("ACC val Linear= ", ACC_final_lin_val))
 print(paste0("ACC train RBF = ", ACC_final_rbf_train))
 print(paste0("ACC val RBF = ", ACC_final_rbf_val))
 
-accplot<-function(ACCs_train,ACC_final_train, ACCs_val,ACC_final_val){
-library(ggplot2)
-ACCNorm <-  data.frame(number = factor(c(1:9, 0, "final", 1:9, 0, "final")),
-             ACC = factor(round(c(ACCs_train,ACC_final_train, ACCs_val,ACC_final_val), 2)),
-             type = factor(c(rep("treino", 11), rep("validação", 11))))
 
-ggplot(data = ACCNorm, aes(x = number, y = ACC, fill = type , adj = 1)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  ggtitle(label, subtitle = NULL)
-}
-
-accplot(ACCs_lin_train,ACC_final_lin_train, ACCs_lin_val,ACC_final_lin_val)
-accplot(ACCs_rbf_train,ACC_final_rbf_train, ACCs_rbf_val,ACC_final_rbf_val)
 ########################################################################################
 # OUTPUTS
 ########################################################################################
 
 cm_rbf_train        # Confusion matrix for train data(kernel rbf)
-cm_linear_train        # Confusion matrix for train data(kernel linear)
+cm_lin_train        # Confusion matrix for train data(kernel linear)
 cm_rbf_val          # Confusion matrix for val data(kernel rbf)
-cm_linear_val          # Confusion matrix for val data(kernel linear)
+cm_lin_val          # Confusion matrix for val data(kernel linear)
 ACCs_rbf_train      # Array with ACC of each number in train data(kernel rbf)
-ACCs_linear_train      # Array with ACC of each number in train data(kernel linear)
+ACCs_lin_train      # Array with ACC of each number in train data(kernel linear)
 ACCs_rbf_val        # Array with ACC of each number in val data(kernel rbf)
-ACCs_linear_val        # Array with ACC of each number in val data(kernel linear)
+ACCs_lin_val        # Array with ACC of each number in val data(kernel linear)
 ACC_final_rbf_train # Normalized ACC of all numbers for train data(kernel rbf)
-ACC_final_linear_train # Normalized ACC of all numbers for train data(kernel linear)
+ACC_final_lin_train # Normalized ACC of all numbers for train data(kernel linear)
 ACC_final_rbf_val   # Normalized ACC of all numbers for val data (kernel rbf)
-ACC_final_linear_val   # Normalized ACC of all numbers for val data(kernel linear)
+ACC_final_lin_val   # Normalized ACC of all numbers for val data(kernel linear)
